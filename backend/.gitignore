@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+.vs/
+test-*.ps1
+appsettings.Development.json
+.env
+*.env

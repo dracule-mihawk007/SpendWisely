@@ -1,0 +1,6 @@
+@SpendWise.Api_HostAddress = http://localhost:5299
+
+GET {{SpendWise.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
