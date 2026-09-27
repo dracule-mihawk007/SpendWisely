@@ -16,6 +16,18 @@ public static class DependencyInjection
 
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IExpenseService, ExpenseService>();
+        services.AddScoped<IScanService, ScanService>();
+
+        services.AddHttpClient<IGeminiVisionService, GeminiVisionService>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["Gemini:BaseUrl"]!.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+
+        services.AddHttpClient<IReceiptStorageService, SupabaseStorageService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         return services;
     }

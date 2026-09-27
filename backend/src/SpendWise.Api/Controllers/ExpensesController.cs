@@ -9,10 +9,12 @@ namespace SpendWise.Api.Controllers;
 public class ExpensesController : ControllerBase
 {
     private readonly IExpenseService _expenseService;
+    private readonly IScanService _scanService;
 
-    public ExpensesController(IExpenseService expenseService)
+    public ExpensesController(IExpenseService expenseService, IScanService scanService)
     {
         _expenseService = expenseService;
+        _scanService = scanService;
     }
 
     [HttpGet]
@@ -54,5 +56,24 @@ public class ExpensesController : ControllerBase
     {
         var total = await _expenseService.GetMonthlyTotalByCategoryAsync(categoryId, year, month);
         return Ok(total);
+    }
+
+    [HttpPost("scan")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<ScanPreviewDto>> Scan(IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest("No file provided.");
+
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType.ToLower()))
+            return BadRequest("Only JPEG, PNG, and WebP images are supported.");
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        var bytes = ms.ToArray();
+
+        var preview = await _scanService.ScanAndPreviewAsync(bytes, file.FileName, file.ContentType);
+        return Ok(preview);
     }
 }
