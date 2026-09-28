@@ -23,7 +23,9 @@ public class SupabaseStorageService : IReceiptStorageService
     public async Task<string> UploadAsync(byte[] imageBytes, string fileName, string contentType)
     {
         var compressed = Compress(imageBytes);
-        var uniqueName = $"{Guid.NewGuid():N}_{Path.GetFileNameWithoutExtension(fileName)}.jpg";
+        var cleanFileName = Path.GetFileNameWithoutExtension(fileName);
+        cleanFileName = System.Text.RegularExpressions.Regex.Replace(cleanFileName, @"[^a-zA-Z0-9_\-]", "_");
+        var uniqueName = $"{Guid.NewGuid():N}_{cleanFileName}.jpg";
         var uploadUrl = $"{_supabaseUrl}/storage/v1/object/{Bucket}/{uniqueName}";
 
         using var content = new ByteArrayContent(compressed);

@@ -87,25 +87,59 @@ public class GeminiVisionService : IGeminiVisionService
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
 
-        var text = doc.RootElement
-            .GetProperty("candidates")[0]
-            .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString()!;
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+        {
+            throw new InvalidOperationException("Gemini returned no candidates in response.");
+        }
+
+        var candidate = candidates[0];
+        if (!candidate.TryGetProperty("content", out var content) ||
+            !content.TryGetProperty("parts", out var parts) ||
+            parts.GetArrayLength() == 0)
+        {
+            throw new InvalidOperationException("Gemini response missing content parts.");
+        }
+
+        var text = parts[0].GetProperty("text").GetString();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new InvalidOperationException("Gemini returned empty text.");
+        }
+
+        text = text.Trim();
+        if (text.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+            text = text[7..];
+        else if (text.StartsWith("```"))
+            text = text[3..];
+        if (text.EndsWith("```"))
+            text = text[..^3];
+        text = text.Trim();
 
         var raw = JsonSerializer.Deserialize<GeminiReceiptResponse>(text, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
-        })!;
+        });
+
+        if (raw is null)
+        {
+            throw new InvalidOperationException("Failed to deserialize Gemini receipt JSON.");
+        }
+
+        var items = (raw.Items ?? new List<GeminiItem>())
+            .Select(i => new ScannedItemDto(
+                i.Description ?? "Item",
+                i.Quantity <= 0 ? 1 : i.Quantity,
+                i.UnitPrice,
+                i.TotalPrice
+            )).ToList();
 
         return new ReceiptScanResultDto(
-            raw.Merchant,
+            raw.Merchant ?? "Unknown Merchant",
             DateTime.TryParse(raw.Date, out var date) ? date : DateTime.UtcNow.Date,
             raw.Total,
             raw.Tax,
-            raw.CategorySuggestion,
-            raw.Items.Select(i => new ScannedItemDto(i.Description, i.Quantity, i.UnitPrice, i.TotalPrice)).ToList()
+            raw.CategorySuggestion ?? "General",
+            items
         );
     }
 

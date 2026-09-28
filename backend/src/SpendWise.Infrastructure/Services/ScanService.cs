@@ -29,20 +29,36 @@ public class ScanService : IScanService
         var scan = await scanTask;
 
         var categories = await _context.Categories.ToListAsync();
+        if (categories.Count == 0)
+        {
+            var defaultCat = new SpendWise.Domain.Entities.Category
+            {
+                Name = "General",
+                MonthlyBudgetLimit = 500,
+                ColorHex = "#4f46e5",
+                Icon = "📁"
+            };
+            _context.Categories.Add(defaultCat);
+            await _context.SaveChangesAsync();
+            categories.Add(defaultCat);
+        }
 
         var matched = categories.FirstOrDefault(c =>
             c.Name.Equals(scan.CategorySuggestion, StringComparison.OrdinalIgnoreCase))
             ?? categories.First();
 
-        var now = DateTime.UtcNow;
+        var targetDate = scan.Date;
+        var startOfMonth = new DateTime(targetDate.Year, targetDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var endOfMonth = startOfMonth.AddMonths(1);
+
         var monthlySpent = await _context.Expenses
             .Where(e => e.CategoryId == matched.Id
-                     && e.ExpenseDate.Year == now.Year
-                     && e.ExpenseDate.Month == now.Month)
-            .SumAsync(e => e.TotalAmount);
+                     && e.ExpenseDate >= startOfMonth
+                     && e.ExpenseDate < endOfMonth)
+            .SumAsync(e => (decimal?)e.TotalAmount) ?? 0m;
 
         var projectedSpent = monthlySpent + scan.Total;
-        var budgetWarning = projectedSpent > matched.MonthlyBudgetLimit;
+        var budgetWarning = matched.MonthlyBudgetLimit > 0 && projectedSpent > matched.MonthlyBudgetLimit;
         var remaining = matched.MonthlyBudgetLimit - monthlySpent;
 
         return new ScanPreviewDto(

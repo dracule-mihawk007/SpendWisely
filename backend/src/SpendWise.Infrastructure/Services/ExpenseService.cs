@@ -26,15 +26,19 @@ public class ExpenseService : IExpenseService
             query = query.Where(e => e.ExpenseDate >= filter.FromDate.Value);
 
         if (filter.ToDate.HasValue)
-            query = query.Where(e => e.ExpenseDate <= filter.ToDate.Value);
+        {
+            var endOfDay = filter.ToDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(e => e.ExpenseDate <= endOfDay);
+        }
 
         if (filter.CategoryId.HasValue)
             query = query.Where(e => e.CategoryId == filter.CategoryId.Value);
 
-        return await query
+        var list = await query
             .OrderByDescending(e => e.ExpenseDate)
-            .Select(e => MapToDto(e))
             .ToListAsync();
+
+        return list.Select(MapToDto).ToList();
     }
 
     public async Task<ExpenseDto?> GetByIdAsync(int id)
@@ -87,11 +91,14 @@ public class ExpenseService : IExpenseService
 
     public async Task<decimal> GetMonthlyTotalByCategoryAsync(int categoryId, int year, int month)
     {
+        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var end = start.AddMonths(1);
+
         return await _context.Expenses
             .Where(e => e.CategoryId == categoryId
-                     && e.ExpenseDate.Year == year
-                     && e.ExpenseDate.Month == month)
-            .SumAsync(e => e.TotalAmount);
+                     && e.ExpenseDate >= start
+                     && e.ExpenseDate < end)
+            .SumAsync(e => (decimal?)e.TotalAmount) ?? 0m;
     }
 
     private static ExpenseDto MapToDto(Expense e) => new(
@@ -102,7 +109,7 @@ public class ExpenseService : IExpenseService
         e.TaxAmount,
         e.ReceiptImageUrl,
         e.CategoryId,
-        e.Category.Name,
+        e.Category?.Name ?? "Uncategorized",
         e.CreatedAt,
         e.Items.Select(i => new ExpenseItemDto(i.Id, i.Description, i.Quantity, i.UnitPrice, i.TotalPrice)).ToList()
     );

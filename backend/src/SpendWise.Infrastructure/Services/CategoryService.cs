@@ -64,6 +64,12 @@ public class CategoryService : ICategoryService
         var category = await _context.Categories.FindAsync(id);
         if (category is null) return false;
 
+        var hasExpenses = await _context.Expenses.AnyAsync(e => e.CategoryId == id);
+        if (hasExpenses)
+        {
+            throw new InvalidOperationException("Cannot delete category because it has active expenses.");
+        }
+
         _context.Categories.Remove(category);
         await _context.SaveChangesAsync();
         return true;

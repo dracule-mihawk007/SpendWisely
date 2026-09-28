@@ -1,0 +1,33 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor files
+.vscode/
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Environment & Secrets (Never commit secrets)
+.env
+*.env
+*.env.local
+backend/src/SpendWise.Api/appsettings.Development.json
+
+# Backend Build & Package Artifacts
+**/bin/
+**/obj/
+backend/test-*.ps1
+
+# Frontend Dependencies & Build Outputs
+**/node_modules/
+**/dist/
+frontend/.angular/cache/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
