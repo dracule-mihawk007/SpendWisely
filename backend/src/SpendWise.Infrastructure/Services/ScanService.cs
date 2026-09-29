@@ -23,10 +23,37 @@ public class ScanService : IScanService
         var uploadTask = _storage.UploadAsync(imageBytes, fileName, contentType);
         var scanTask = _gemini.ScanReceiptAsync(imageBytes, contentType);
 
-        await Task.WhenAll(uploadTask, scanTask);
+        string imageUrl;
+        try
+        {
+            imageUrl = await uploadTask;
+        }
+        catch
+        {
+            imageUrl = string.Empty;
+        }
 
-        var imageUrl = await uploadTask;
-        var scan = await scanTask;
+        ReceiptScanResultDto scan;
+        bool aiSuccess = true;
+        string? aiNotice = null;
+
+        try
+        {
+            scan = await scanTask;
+        }
+        catch (Exception)
+        {
+            aiSuccess = false;
+            aiNotice = "Google Gemini AI vision is currently experiencing high demand. Your receipt was uploaded; you may enter details manually or retry scanning.";
+            scan = new ReceiptScanResultDto(
+                "Uploaded Receipt",
+                DateTime.UtcNow,
+                0m,
+                0m,
+                "General",
+                new List<ScannedItemDto>()
+            );
+        }
 
         var categories = await _context.Categories.ToListAsync();
         if (categories.Count == 0)
@@ -59,7 +86,6 @@ public class ScanService : IScanService
 
         var projectedSpent = monthlySpent + scan.Total;
         var budgetWarning = matched.MonthlyBudgetLimit > 0 && projectedSpent > matched.MonthlyBudgetLimit;
-        var remaining = matched.MonthlyBudgetLimit - monthlySpent;
 
         return new ScanPreviewDto(
             scan.Merchant,
@@ -72,7 +98,9 @@ public class ScanService : IScanService
             budgetWarning,
             monthlySpent,
             matched.MonthlyBudgetLimit,
-            scan.Items
+            scan.Items,
+            aiSuccess,
+            aiNotice
         );
     }
 }

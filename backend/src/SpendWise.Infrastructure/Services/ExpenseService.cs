@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SpendWise.Application.DTOs;
 using SpendWise.Application.Interfaces;
@@ -56,7 +58,7 @@ public class ExpenseService : IExpenseService
         var expense = new Expense
         {
             MerchantName = dto.MerchantName,
-            ExpenseDate = dto.ExpenseDate,
+            ExpenseDate = DateTime.SpecifyKind(dto.ExpenseDate, DateTimeKind.Utc),
             TotalAmount = dto.TotalAmount,
             TaxAmount = dto.TaxAmount,
             ReceiptImageUrl = dto.ReceiptImageUrl,
@@ -99,6 +101,109 @@ public class ExpenseService : IExpenseService
                      && e.ExpenseDate >= start
                      && e.ExpenseDate < end)
             .SumAsync(e => (decimal?)e.TotalAmount) ?? 0m;
+    }
+
+    public async Task<DashboardAnalyticsDto> GetAnalyticsAsync(int? year, int? month)
+    {
+        var now = DateTime.UtcNow;
+        var targetYear = year ?? now.Year;
+        var targetMonth = month ?? now.Month;
+
+        var startOfMonth = new DateTime(targetYear, targetMonth, 1, 0, 0, 0, DateTimeKind.Utc);
+        var endOfMonth = startOfMonth.AddMonths(1);
+
+        var categories = await _context.Categories.AsNoTracking().ToListAsync();
+
+        var monthExpenses = await _context.Expenses
+            .AsNoTracking()
+            .Where(e => e.ExpenseDate >= startOfMonth && e.ExpenseDate < endOfMonth)
+            .ToListAsync();
+
+        var sixMonthsAgo = startOfMonth.AddMonths(-5);
+        var trendExpenses = await _context.Expenses
+            .AsNoTracking()
+            .Where(e => e.ExpenseDate >= sixMonthsAgo && e.ExpenseDate < endOfMonth)
+            .ToListAsync();
+
+        var totalSpentThisMonth = monthExpenses.Sum(e => e.TotalAmount);
+        var totalMonthlyBudget = categories.Sum(c => c.MonthlyBudgetLimit);
+        var remainingBudget = totalMonthlyBudget - totalSpentThisMonth;
+        var totalTransactions = monthExpenses.Count;
+        var receiptsWithImagesCount = monthExpenses.Count(e => !string.IsNullOrEmpty(e.ReceiptImageUrl));
+
+        var categoryBreakdown = categories.Select(c =>
+        {
+            var spent = monthExpenses.Where(e => e.CategoryId == c.Id).Sum(e => e.TotalAmount);
+            var pct = c.MonthlyBudgetLimit > 0 ? (double)(spent / c.MonthlyBudgetLimit * 100) : 0;
+            return new CategorySpendingDto(c.Id, c.Name, c.ColorHex, c.Icon, spent, c.MonthlyBudgetLimit, Math.Round(pct, 1));
+        }).OrderByDescending(c => c.TotalSpent).ToList();
+
+        var dailyTrend = monthExpenses
+            .GroupBy(e => e.ExpenseDate.ToString("yyyy-MM-dd"))
+            .Select(g => new DailySpendingDto(g.Key, g.Sum(e => e.TotalAmount)))
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        var monthlyTrend = new List<MonthlySpendingDto>();
+        for (int i = 0; i < 6; i++)
+        {
+            var mStart = sixMonthsAgo.AddMonths(i);
+            var mEnd = mStart.AddMonths(1);
+            var sum = trendExpenses
+                .Where(e => e.ExpenseDate >= mStart && e.ExpenseDate < mEnd)
+                .Sum(e => e.TotalAmount);
+
+            monthlyTrend.Add(new MonthlySpendingDto(
+                mStart.ToString("MMM", CultureInfo.InvariantCulture),
+                mStart.Month,
+                mStart.Year,
+                sum
+            ));
+        }
+
+        return new DashboardAnalyticsDto(
+            totalSpentThisMonth,
+            totalMonthlyBudget,
+            remainingBudget,
+            totalTransactions,
+            receiptsWithImagesCount,
+            categoryBreakdown,
+            dailyTrend,
+            monthlyTrend
+        );
+    }
+
+    public async Task<byte[]> ExportExpensesCsvAsync(ExpenseFilterDto filter)
+    {
+        var expenses = await GetAllAsync(filter);
+        var sb = new StringBuilder();
+
+        sb.AppendLine("Date,Merchant,Category,Items Count,Tax,Total,Receipt Image");
+
+        foreach (var e in expenses)
+        {
+            var dateStr = e.ExpenseDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var merchant = EscapeCsvField(e.MerchantName);
+            var category = EscapeCsvField(e.CategoryName);
+            var itemsCount = e.Items?.Count ?? 0;
+            var tax = e.TaxAmount.ToString("F2", CultureInfo.InvariantCulture);
+            var total = e.TotalAmount.ToString("F2", CultureInfo.InvariantCulture);
+            var receipt = EscapeCsvField(e.ReceiptImageUrl ?? string.Empty);
+
+            sb.AppendLine($"{dateStr},{merchant},{category},{itemsCount},{tax},{total},{receipt}");
+        }
+
+        return Encoding.UTF8.GetBytes(sb.ToString());
+    }
+
+    private static string EscapeCsvField(string field)
+    {
+        if (string.IsNullOrEmpty(field)) return string.Empty;
+        if (field.Contains(',') || field.Contains('"') || field.Contains('\n') || field.Contains('\r'))
+        {
+            return $"\"{field.Replace("\"", "\"\"")}\"";
+        }
+        return field;
     }
 
     private static ExpenseDto MapToDto(Expense e) => new(

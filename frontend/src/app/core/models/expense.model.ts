@@ -9,7 +9,7 @@ export interface ExpenseItemDto {
 export interface ExpenseDto {
   id: number;
   merchantName: string;
-  expenseDate: string; // ISO date string
+  expenseDate: string;
   totalAmount: number;
   taxAmount: number;
   receiptImageUrl?: string | null;

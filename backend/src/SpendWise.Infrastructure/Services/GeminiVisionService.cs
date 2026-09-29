@@ -54,34 +54,49 @@ public class GeminiVisionService : IGeminiVisionService
                     parts = new object[]
                     {
                         new { text = ReceiptPrompt },
-                        new { inline_data = new { mime_type = mimeType, data = base64 } }
+                        new { inlineData = new { mimeType = mimeType, data = base64 } }
                     }
                 }
-            },
-            generationConfig = new
-            {
-                temperature = 0,
-                responseMimeType = "application/json"
             }
         };
 
-        var url = $"v1beta/models/{_model}:generateContent?key={_apiKey}";
+        var candidateModels = new[] { _model, "gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash" }
+            .Where(m => !string.IsNullOrWhiteSpace(m))
+            .Distinct()
+            .ToArray();
 
         HttpResponseMessage response = null!;
-        for (int attempt = 1; attempt <= 3; attempt++)
-        {
-            response = await _http.PostAsJsonAsync(url, payload);
-            if (response.IsSuccessStatusCode) break;
+        string lastError = string.Empty;
 
-            var status = (int)response.StatusCode;
-            if ((status == 503 || status == 429) && attempt < 3)
+        foreach (var modelName in candidateModels)
+        {
+            var url = $"v1beta/models/{modelName}:generateContent?key={_apiKey}";
+            for (int attempt = 1; attempt <= 3; attempt++)
             {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-                continue;
+                response = await _http.PostAsJsonAsync(url, payload);
+                if (response.IsSuccessStatusCode) break;
+
+                var status = (int)response.StatusCode;
+                lastError = await response.Content.ReadAsStringAsync();
+
+                if ((status == 503 || status == 429) && attempt < 3)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(1500 * attempt));
+                    continue;
+                }
+
+                break;
             }
 
-            var errorBody = await response.Content.ReadAsStringAsync();
-            throw new HttpRequestException($"Gemini API error {status}: {errorBody}");
+            if (response != null && response.IsSuccessStatusCode)
+            {
+                break;
+            }
+        }
+
+        if (response == null || !response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException($"Gemini API error: {lastError}");
         }
 
         var json = await response.Content.ReadAsStringAsync();
@@ -135,7 +150,7 @@ public class GeminiVisionService : IGeminiVisionService
 
         return new ReceiptScanResultDto(
             raw.Merchant ?? "Unknown Merchant",
-            DateTime.TryParse(raw.Date, out var date) ? date : DateTime.UtcNow.Date,
+            DateTime.SpecifyKind(DateTime.TryParse(raw.Date, out var date) ? date : DateTime.UtcNow, DateTimeKind.Utc),
             raw.Total,
             raw.Tax,
             raw.CategorySuggestion ?? "General",

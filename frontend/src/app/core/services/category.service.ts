@@ -11,7 +11,6 @@ export class CategoryService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/categories`;
 
-  // Signals State
   private readonly _categories = signal<CategoryDto[]>([]);
   public readonly categories = this._categories.asReadonly();
 

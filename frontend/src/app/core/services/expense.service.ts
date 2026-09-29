@@ -8,6 +8,7 @@ import {
   ExpenseFilterDto
 } from '../models/expense.model';
 import { ScanPreviewDto } from '../models/receipt.model';
+import { DashboardAnalyticsDto } from '../models/analytics.model';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,6 @@ export class ExpenseService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/expenses`;
 
-  // Signals State
   private readonly _expenses = signal<ExpenseDto[]>([]);
   public readonly expenses = this._expenses.asReadonly();
 
@@ -83,6 +83,47 @@ export class ExpenseService {
       .set('month', month.toString());
 
     return this.http.get<number>(`${this.baseUrl}/monthly-total`, { params });
+  }
+
+  getAnalytics(year?: number, month?: number): Observable<DashboardAnalyticsDto> {
+    let params = new HttpParams();
+    if (year !== undefined && year !== null) {
+      params = params.set('year', year.toString());
+    }
+    if (month !== undefined && month !== null) {
+      params = params.set('month', month.toString());
+    }
+
+    return this.http.get<DashboardAnalyticsDto>(`${this.baseUrl}/analytics`, { params });
+  }
+
+  exportCsv(filter?: ExpenseFilterDto): Observable<Blob> {
+    let params = new HttpParams();
+    if (filter?.fromDate) {
+      params = params.set('fromDate', filter.fromDate);
+    }
+    if (filter?.toDate) {
+      params = params.set('toDate', filter.toDate);
+    }
+    if (filter?.categoryId !== null && filter?.categoryId !== undefined) {
+      params = params.set('categoryId', filter.categoryId.toString());
+    }
+
+    return this.http.get(`${this.baseUrl}/export-csv`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  downloadCsvBlob(blob: Blob, filename = 'spendwisely-expenses.csv'): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 
   scanReceipt(file: File): Observable<ScanPreviewDto> {

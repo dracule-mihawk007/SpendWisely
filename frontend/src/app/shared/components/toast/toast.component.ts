@@ -60,11 +60,11 @@ import { NotificationService } from '../../../core/services/notification.service
       gap: 0.85rem;
       padding: 0.95rem 1.15rem;
       border-radius: var(--radius-md);
-      background: rgba(15, 23, 42, 0.92);
+      background: var(--bg-card);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
-      border: 1px solid var(--border-glass);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 1px rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-subtle);
       color: var(--text-primary);
       animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       transition: all var(--transition-fast);
@@ -113,7 +113,7 @@ import { NotificationService } from '../../../core/services/notification.service
     }
 
     .toast-close:hover {
-      color: #fff;
+      color: var(--text-primary);
     }
 
     .toast-success {

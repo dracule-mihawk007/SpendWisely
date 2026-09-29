@@ -58,6 +58,27 @@ public class ExpensesController : ControllerBase
         return Ok(total);
     }
 
+    [HttpGet("analytics")]
+    public async Task<ActionResult<DashboardAnalyticsDto>> GetAnalytics(
+        [FromQuery] int? year,
+        [FromQuery] int? month)
+    {
+        var analytics = await _expenseService.GetAnalyticsAsync(year, month);
+        return Ok(analytics);
+    }
+
+    [HttpGet("export-csv")]
+    public async Task<IActionResult> ExportCsv(
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int? categoryId)
+    {
+        var filter = new ExpenseFilterDto(fromDate, toDate, categoryId);
+        var csvBytes = await _expenseService.ExportExpensesCsvAsync(filter);
+        var fileName = $"spendwisely-expenses-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv";
+        return File(csvBytes, "text/csv", fileName);
+    }
+
     [HttpPost("scan")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<ScanPreviewDto>> Scan(IFormFile file)
@@ -73,7 +94,22 @@ public class ExpensesController : ControllerBase
         await file.CopyToAsync(ms);
         var bytes = ms.ToArray();
 
-        var preview = await _scanService.ScanAndPreviewAsync(bytes, file.FileName, file.ContentType);
-        return Ok(preview);
+        try
+        {
+            var preview = await _scanService.ScanAndPreviewAsync(bytes, file.FileName, file.ContentType);
+            return Ok(preview);
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("503"))
+        {
+            return StatusCode(503, new { message = "Google Gemini AI vision service is temporarily experiencing high demand. Please try again in a few moments." });
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("429"))
+        {
+            return StatusCode(429, new { message = "Google Gemini AI rate limit reached. Please wait a moment and try again." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Failed to process receipt: {ex.Message}" });
+        }
     }
 }

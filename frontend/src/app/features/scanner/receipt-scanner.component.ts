@@ -472,7 +472,6 @@ export class ReceiptScannerComponent implements OnInit {
   readonly scanPreview = signal<ScanPreviewDto | null>(null);
   readonly localImagePreviewUrl = signal<string | null>(null);
 
-  // Form Fields
   formMerchant = '';
   formDate = new Date().toISOString().substring(0, 10);
   formCategoryId = 1;
@@ -548,7 +547,12 @@ export class ReceiptScannerComponent implements OnInit {
         this.formTotal = preview.total || 0;
         this.items.set(preview.items ? [...preview.items] : []);
 
-        if (preview.budgetWarning) {
+        if (preview.aiScanSuccessful === false) {
+          this.notificationService.warning(
+            'AI Notice',
+            preview.aiNotice || 'Receipt uploaded! Please review or enter values manually.'
+          );
+        } else if (preview.budgetWarning) {
           this.notificationService.warning(
             'Budget Warning',
             `This receipt exceeds the monthly budget for ${preview.suggestedCategoryName}.`
@@ -559,8 +563,8 @@ export class ReceiptScannerComponent implements OnInit {
       },
       error: (err) => {
         this.isScanning.set(false);
-        const errMsg = err?.error?.title || err?.message || 'Failed to scan receipt. Please ensure the backend is running.';
-        this.notificationService.error('Scan Failed', errMsg);
+        const errMsg = err?.error?.message || err?.error?.title || err?.message || 'Failed to scan receipt. Please ensure the backend is running.';
+        this.notificationService.error('Scan Notice', errMsg);
       }
     });
   }

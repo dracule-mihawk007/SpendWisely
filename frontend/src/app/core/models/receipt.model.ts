@@ -17,4 +17,6 @@ export interface ScanPreviewDto {
   monthlySpent: number;
   monthlyBudgetLimit: number;
   items: ScannedItemDto[];
+  aiScanSuccessful?: boolean;
+  aiNotice?: string | null;
 }

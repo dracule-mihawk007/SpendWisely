@@ -1,10 +1,25 @@
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  OnInit,
+  AfterViewInit,
+  OnDestroy,
+  computed,
+  effect,
+  ViewChild,
+  ElementRef
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
+import { Chart, registerables, ChartConfiguration } from 'chart.js';
 import { ExpenseService } from '../../core/services/expense.service';
 import { CategoryService } from '../../core/services/category.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { ExpenseDto } from '../../core/models/expense.model';
 import { formatCategoryIcon } from '../../core/utils/icon.utils';
+
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-dashboard',
@@ -12,7 +27,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
   imports: [CommonModule, RouterLink],
   template: `
     <div class="container animate-fade-in">
-      <!-- Top Header -->
       <div class="dashboard-header">
         <div>
           <div class="greeting-row">
@@ -37,7 +51,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
         </div>
       </div>
 
-      <!-- Over-Budget Alert Banner -->
       @if (overBudgetCategories().length > 0) {
         <div class="alert-banner animate-fade-in">
           <div class="alert-icon">
@@ -55,9 +68,7 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
         </div>
       }
 
-      <!-- KPI Summary Cards (No currency symbols) -->
       <div class="grid-cols-4 stat-cards-row">
-        <!-- Spent This Month -->
         <div class="glass-card stat-card">
           <div class="stat-card-top">
             <span class="stat-label">Spent This Month</span>
@@ -69,7 +80,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
           <span class="stat-subtext">Across all categories</span>
         </div>
 
-        <!-- Total Monthly Budget -->
         <div class="glass-card stat-card">
           <div class="stat-card-top">
             <span class="stat-label">Total Monthly Budget</span>
@@ -81,7 +91,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
           <span class="stat-subtext">{{ categoryService.categories().length }} active categories</span>
         </div>
 
-        <!-- Remaining Budget -->
         <div class="glass-card stat-card">
           <div class="stat-card-top">
             <span class="stat-label">Remaining Budget</span>
@@ -97,7 +106,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
           </span>
         </div>
 
-        <!-- Logged Receipts -->
         <div class="glass-card stat-card">
           <div class="stat-card-top">
             <span class="stat-label">Logged Receipts</span>
@@ -110,9 +118,65 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
         </div>
       </div>
 
-      <!-- Main Dashboard Grid -->
+      <div class="charts-grid">
+        <div class="glass-card chart-card">
+          <div class="card-title-row">
+            <div>
+              <h3>Category Breakdown</h3>
+              <p>Spending distribution across active categories</p>
+            </div>
+            <span class="badge badge-primary">{{ categorySpendingData().labels.length }} Categories</span>
+          </div>
+
+          <div class="chart-wrapper">
+            @if (hasCategorySpending()) {
+              <div class="canvas-container">
+                <canvas #categoryCanvas></canvas>
+              </div>
+              <div class="category-legend-list">
+                @for (item of categorySpendingLegend(); track item.name) {
+                  <div class="legend-row">
+                    <div class="legend-left">
+                      <span class="legend-color-dot" [style.background-color]="item.color"></span>
+                      <span class="legend-label">{{ item.name }}</span>
+                    </div>
+                    <div class="legend-right">
+                      <span class="legend-amount">{{ item.amount | number:'1.2-2' }}</span>
+                      <span class="legend-pct">{{ item.percentage | number:'1.0-0' }}%</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="chart-empty-state">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+                <p>No category spending recorded this month.</p>
+                <a routerLink="/scan" class="btn btn-sm btn-primary">Scan First Receipt</a>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="card-title-row">
+            <div>
+              <h3>Monthly Spending Trend</h3>
+              <p>Total expenditure across the past 6 months</p>
+            </div>
+            <span class="badge badge-emerald">6-Month Trend</span>
+          </div>
+
+          <div class="chart-wrapper">
+            <div class="canvas-container-full">
+              <canvas #trendCanvas></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="dashboard-main-grid">
-        <!-- Category Budget Health -->
         <div class="glass-card category-breakdown-card">
           <div class="card-title-row">
             <div>
@@ -162,7 +226,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
           </div>
         </div>
 
-        <!-- Quick Receipt Scanner Box -->
         <div class="glass-card scan-quick-card">
           <div class="card-title-row" style="margin-bottom: 0.75rem;">
             <div>
@@ -194,7 +257,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
         </div>
       </div>
 
-      <!-- Recent Expenses Table -->
       <div class="glass-card recent-expenses-card" style="margin-top: 1.5rem;">
         <div class="card-title-row">
           <div>
@@ -268,7 +330,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       gap: 0.65rem;
     }
 
-    /* Alert Banner */
     .alert-banner {
       display: flex;
       align-items: flex-start;
@@ -298,7 +359,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       margin: 0;
     }
 
-    /* Stat Cards */
     .stat-cards-row {
       margin-bottom: 1.5rem;
     }
@@ -358,7 +418,114 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       color: var(--accent-rose) !important;
     }
 
-    /* Main Grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-card {
+      padding: 1.35rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      flex: 1;
+      min-height: 240px;
+      display: flex;
+      align-items: center;
+    }
+
+    .canvas-container {
+      position: relative;
+      height: 220px;
+      width: 48%;
+      flex-shrink: 0;
+    }
+
+    .canvas-container-full {
+      position: relative;
+      height: 220px;
+      width: 100%;
+    }
+
+    .category-legend-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-left: 1rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .legend-left {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-width: 0;
+    }
+
+    .legend-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .legend-right {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-shrink: 0;
+    }
+
+    .legend-amount {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .legend-pct {
+      font-size: 0.725rem;
+      color: var(--text-muted);
+      width: 28px;
+      text-align: right;
+    }
+
+    .chart-empty-state {
+      width: 100%;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .chart-empty-state svg {
+      opacity: 0.4;
+    }
+
     .dashboard-main-grid {
       display: grid;
       grid-template-columns: 1.6fr 1fr;
@@ -383,7 +550,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       margin: 0;
     }
 
-    /* Category progress bars */
     .category-bars-list {
       display: flex;
       flex-direction: column;
@@ -475,7 +641,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       transition: width var(--transition-normal);
     }
 
-    /* Scan Quick Box */
     .scan-quick-card {
       display: flex;
       flex-direction: column;
@@ -536,7 +701,6 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       flex-shrink: 0;
     }
 
-    /* Recent Transactions */
     .recent-list {
       display: flex;
       flex-direction: column;
@@ -600,23 +764,51 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
       padding: 1rem;
     }
 
-    @media (max-width: 850px) {
+    @media (max-width: 900px) {
+      .charts-grid { grid-template-columns: 1fr; }
       .dashboard-main-grid { grid-template-columns: 1fr; }
       .dashboard-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
     }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly expenseService = inject(ExpenseService);
   readonly categoryService = inject(CategoryService);
+  readonly themeService = inject(ThemeService);
   readonly router = inject(Router);
+
+  @ViewChild('categoryCanvas') categoryCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('trendCanvas') trendCanvas?: ElementRef<HTMLCanvasElement>;
+
+  private categoryChartInstance?: Chart;
+  private trendChartInstance?: Chart;
 
   readonly currentMonthName = signal<string>(new Date().toLocaleString('default', { month: 'long' }));
   readonly currentYear = signal<number>(new Date().getFullYear());
 
+  constructor() {
+    effect(() => {
+      this.themeService.currentTheme();
+      this.expenseService.expenses();
+      this.categoryService.categories();
+
+      setTimeout(() => {
+        this.renderCharts();
+      }, 50);
+    });
+  }
+
   ngOnInit(): void {
     this.expenseService.loadExpenses().subscribe();
     this.categoryService.loadCategories().subscribe();
+  }
+
+  ngAfterViewInit(): void {
+    this.renderCharts();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyCharts();
   }
 
   getCategoryIcon(icon: string | null | undefined): string {
@@ -683,6 +875,71 @@ export class DashboardComponent implements OnInit {
     return this.expenseService.expenses().slice(0, 5);
   });
 
+  categorySpendingData = computed(() => {
+    const categories = this.categoryService.categories();
+    const labels: string[] = [];
+    const values: number[] = [];
+    const colors: string[] = [];
+
+    for (const cat of categories) {
+      const spent = this.getCategorySpent(cat.id);
+      if (spent > 0) {
+        labels.push(cat.name);
+        values.push(spent);
+        colors.push(cat.colorHex || '#4f46e5');
+      }
+    }
+
+    return { labels, values, colors };
+  });
+
+  hasCategorySpending = computed(() => {
+    return this.categorySpendingData().values.length > 0;
+  });
+
+  categorySpendingLegend = computed(() => {
+    const data = this.categorySpendingData();
+    const total = data.values.reduce((s, v) => s + v, 0);
+
+    return data.labels.map((name, i) => {
+      const amount = data.values[i];
+      const percentage = total > 0 ? (amount / total) * 100 : 0;
+      return {
+        name,
+        amount,
+        percentage,
+        color: data.colors[i]
+      };
+    });
+  });
+
+  sixMonthTrendData = computed(() => {
+    const expenses = this.expenseService.expenses();
+    const labels: string[] = [];
+    const values: number[] = [];
+    const now = new Date();
+
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const m = targetDate.getMonth();
+      const y = targetDate.getFullYear();
+      const monthName = targetDate.toLocaleString('default', { month: 'short' });
+
+      labels.push(monthName);
+
+      const sum = expenses
+        .filter(e => {
+          const d = new Date(e.expenseDate);
+          return d.getMonth() === m && d.getFullYear() === y;
+        })
+        .reduce((acc, e) => acc + e.totalAmount, 0);
+
+      values.push(sum);
+    }
+
+    return { labels, values };
+  });
+
   getBarColor(pct: number, defaultColor: string): string {
     if (pct >= 100) return 'var(--accent-rose)';
     if (pct >= 85) return 'var(--accent-amber)';
@@ -692,5 +949,137 @@ export class DashboardComponent implements OnInit {
   getCategoryColor(catId: number): string {
     const cat = this.categoryService.categories().find(c => c.id === catId);
     return cat?.colorHex || '#4f46e5';
+  }
+
+  private renderCharts(): void {
+    const isDark = this.themeService.currentTheme() === 'dark';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)';
+    const tooltipBg = isDark ? '#1e293b' : '#ffffff';
+    const tooltipText = isDark ? '#f8fafc' : '#0f172a';
+
+    if (this.categoryCanvas?.nativeElement && this.hasCategorySpending()) {
+      if (this.categoryChartInstance) {
+        this.categoryChartInstance.destroy();
+      }
+
+      const catData = this.categorySpendingData();
+      const ctx = this.categoryCanvas.nativeElement.getContext('2d');
+
+      if (ctx) {
+        this.categoryChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: catData.labels,
+            datasets: [
+              {
+                data: catData.values,
+                backgroundColor: catData.colors,
+                borderWidth: isDark ? 2 : 1,
+                borderColor: isDark ? '#0f172a' : '#ffffff',
+                hoverOffset: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: tooltipBg,
+                titleColor: tooltipText,
+                bodyColor: tooltipText,
+                borderColor: gridColor,
+                borderWidth: 1,
+                padding: 10,
+                displayColors: true,
+                callbacks: {
+                  label: (ctx) => {
+                    const val = Number(ctx.raw) || 0;
+                    return ` ${ctx.label}: ${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    if (this.trendCanvas?.nativeElement) {
+      if (this.trendChartInstance) {
+        this.trendChartInstance.destroy();
+      }
+
+      const trendData = this.sixMonthTrendData();
+      const ctx = this.trendCanvas.nativeElement.getContext('2d');
+
+      if (ctx) {
+        this.trendChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: trendData.labels,
+            datasets: [
+              {
+                label: 'Monthly Spend',
+                data: trendData.values,
+                backgroundColor: isDark ? 'rgba(99, 102, 241, 0.85)' : 'rgba(79, 70, 229, 0.85)',
+                hoverBackgroundColor: isDark ? '#818cf8' : '#6366f1',
+                borderRadius: 6,
+                borderSkipped: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: textColor, font: { family: 'inherit', size: 11 } }
+              },
+              y: {
+                grid: { color: gridColor },
+                ticks: {
+                  color: textColor,
+                  font: { family: 'inherit', size: 11 },
+                  callback: (val) => Number(val).toLocaleString('en-US')
+                }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: tooltipBg,
+                titleColor: tooltipText,
+                bodyColor: tooltipText,
+                borderColor: gridColor,
+                borderWidth: 1,
+                padding: 10,
+                callbacks: {
+                  label: (ctx) => {
+                    const val = Number(ctx.raw) || 0;
+                    return ` Spend: ${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  private destroyCharts(): void {
+    if (this.categoryChartInstance) {
+      this.categoryChartInstance.destroy();
+      this.categoryChartInstance = undefined;
+    }
+    if (this.trendChartInstance) {
+      this.trendChartInstance.destroy();
+      this.trendChartInstance = undefined;
+    }
   }
 }

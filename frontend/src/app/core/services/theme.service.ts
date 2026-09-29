@@ -29,7 +29,6 @@ export class ThemeService {
     if (saved === 'light' || saved === 'dark') {
       return saved;
     }
-    // Default to dark
     return 'dark';
   }
 

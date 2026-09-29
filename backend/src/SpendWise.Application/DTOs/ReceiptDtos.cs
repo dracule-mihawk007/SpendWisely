@@ -27,5 +27,7 @@ public record ScanPreviewDto(
     bool BudgetWarning,
     decimal MonthlySpent,
     decimal MonthlyBudgetLimit,
-    List<ScannedItemDto> Items
+    List<ScannedItemDto> Items,
+    bool AiScanSuccessful = true,
+    string? AiNotice = null
 );

@@ -9,4 +9,7 @@ public interface IExpenseService
     Task<ExpenseDto> CreateAsync(CreateExpenseDto dto);
     Task<bool> DeleteAsync(int id);
     Task<decimal> GetMonthlyTotalByCategoryAsync(int categoryId, int year, int month);
+    Task<DashboardAnalyticsDto> GetAnalyticsAsync(int? year, int? month);
+    Task<byte[]> ExportExpensesCsvAsync(ExpenseFilterDto filter);
 }
+
