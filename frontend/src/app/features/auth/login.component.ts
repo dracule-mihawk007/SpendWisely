@@ -75,12 +75,24 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="loginEmail" 
                   required 
                   autocomplete="email">
+                @if (loginEmail) {
+                  <button
+                    type="button"
+                    class="btn-clear-input"
+                    (click)="loginEmail = ''"
+                    aria-label="Clear email"
+                    title="Clear email">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
               </div>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="login-password">Password</label>
-              <div class="input-with-icon">
+              <div class="input-with-icon has-password-toggle">
                 <svg class="input-icon-prefix" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -94,6 +106,18 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="loginPassword" 
                   required 
                   autocomplete="current-password">
+                @if (loginPassword) {
+                  <button
+                    type="button"
+                    class="btn-clear-input"
+                    (click)="loginPassword = ''"
+                    aria-label="Clear password"
+                    title="Clear password">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
                 <button 
                   type="button" 
                   class="btn-toggle-eye" 
@@ -147,11 +171,23 @@ import { NotificationService } from '../../core/services/notification.service';
                   id="reg-name" 
                   type="text" 
                   class="form-control" 
-                  placeholder="e.g. Alex Johnson" 
+                  placeholder="e.g. Firstname Lastname" 
                   [(ngModel)]="registerName" 
                   name="registerName" 
                   required 
                   autocomplete="name">
+                @if (registerName) {
+                  <button
+                    type="button"
+                    class="btn-clear-input"
+                    (click)="registerName = ''"
+                    aria-label="Clear name"
+                    title="Clear name">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
               </div>
             </div>
 
@@ -171,12 +207,24 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="registerEmail" 
                   required 
                   autocomplete="email">
+                @if (registerEmail) {
+                  <button
+                    type="button"
+                    class="btn-clear-input"
+                    (click)="registerEmail = ''"
+                    aria-label="Clear email"
+                    title="Clear email">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
               </div>
             </div>
 
             <div class="form-group">
               <label class="form-label" for="reg-password">Password</label>
-              <div class="input-with-icon">
+              <div class="input-with-icon has-password-toggle">
                 <svg class="input-icon-prefix" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -190,6 +238,18 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="registerPassword" 
                   required 
                   autocomplete="new-password">
+                @if (registerPassword) {
+                  <button
+                    type="button"
+                    class="btn-clear-input"
+                    (click)="registerPassword = ''"
+                    aria-label="Clear password"
+                    title="Clear password">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
                 <button 
                   type="button" 
                   class="btn-toggle-eye" 
@@ -215,7 +275,7 @@ import { NotificationService } from '../../core/services/notification.service';
 
             <div class="form-group">
               <label class="form-label" for="reg-confirm">Confirm Password</label>
-              <div class="input-with-icon">
+              <div class="input-with-icon has-password-toggle">
                 <svg class="input-icon-prefix" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -229,6 +289,18 @@ import { NotificationService } from '../../core/services/notification.service';
                   name="registerConfirm" 
                   required 
                   autocomplete="new-password">
+                @if (registerConfirm) {
+                  <button
+                    type="button"
+                    class="btn-clear-input"
+                    (click)="registerConfirm = ''"
+                    aria-label="Clear confirm password"
+                    title="Clear confirm password">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
                 <button 
                   type="button" 
                   class="btn-toggle-eye" 
@@ -424,22 +496,75 @@ import { NotificationService } from '../../core/services/notification.service';
       font-size: 0.9rem;
     }
 
-    .btn-toggle-eye {
+    
+    .btn-clear-input {
       position: absolute;
       right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: none !important;
+      border-radius: 50%;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      appearance: none;
+      z-index: 3;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    
+
+    .btn-clear-input:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .has-password-toggle .btn-clear-input {
+      right: 3rem;
+    }
+
+    .input-with-icon.has-password-toggle .form-control {
+      padding-right: 5.5rem;
+    }
+
+    .btn-toggle-eye {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      padding: 0;
       background: transparent;
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      padding: 0.35rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 2;
       transition: color var(--transition-fast);
     }
 
     .btn-toggle-eye:hover {
       color: var(--text-primary);
+    }
+
+    .input-with-icon .form-control {
+      box-sizing: border-box;
+      padding-left: 2.75rem;
+      padding-right: 3rem;
+      width: 100%;
+      height: 44px;
+      font-size: 0.9rem;
     }
 
     .submit-btn {
@@ -583,8 +708,25 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    if (this.registerPassword.length < 6) {
+    const password = this.registerPassword;
+
+    if (password.length < 6) {
       this.errorMessage.set('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      this.errorMessage.set('Password must contain at least 1 uppercase letter.');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      this.errorMessage.set('Password must contain at least 1 number.');
+      return;
+    }
+
+    if (!/[^A-Za-z0-9\s]/.test(password)) {
+      this.errorMessage.set('Password must contain at least 1 special character.');
       return;
     }
 
