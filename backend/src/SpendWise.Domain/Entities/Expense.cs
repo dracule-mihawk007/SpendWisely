@@ -9,8 +9,10 @@ public class Expense
     public decimal TaxAmount { get; set; }
     public string? ReceiptImageUrl { get; set; }
     public int CategoryId { get; set; }
+    public int UserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public AppUser User { get; set; } = null!;
     public Category Category { get; set; } = null!;
     public ICollection<ExpenseItem> Items { get; set; } = new List<ExpenseItem>();
 }

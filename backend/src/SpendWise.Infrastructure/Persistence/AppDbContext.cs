@@ -7,12 +7,22 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+    public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<ExpenseItem> ExpenseItems => Set<ExpenseItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AppUser>(entity =>
+        {
+            entity.HasKey(u => u.Id);
+            entity.Property(u => u.Name).IsRequired().HasMaxLength(100);
+            entity.Property(u => u.Email).IsRequired().HasMaxLength(200);
+            entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.PasswordHash).IsRequired();
+        });
+
         modelBuilder.Entity<Category>(entity =>
         {
             entity.HasKey(c => c.Id);
@@ -20,6 +30,10 @@ public class AppDbContext : DbContext
             entity.Property(c => c.ColorHex).IsRequired().HasMaxLength(7);
             entity.Property(c => c.Icon).IsRequired().HasMaxLength(50);
             entity.Property(c => c.MonthlyBudgetLimit).HasColumnType("decimal(18,2)");
+            entity.HasOne(c => c.User)
+                  .WithMany(u => u.Categories)
+                  .HasForeignKey(c => c.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Expense>(entity =>
@@ -32,6 +46,10 @@ public class AppDbContext : DbContext
                   .WithMany(c => c.Expenses)
                   .HasForeignKey(e => e.CategoryId)
                   .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.User)
+                  .WithMany(u => u.Expenses)
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ExpenseItem>(entity =>
@@ -46,12 +64,7 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Category>().HasData(
-            new Category { Id = 1, Name = "Dining", MonthlyBudgetLimit = 500, ColorHex = "#FF6B6B", Icon = "restaurant" },
-            new Category { Id = 2, Name = "Groceries", MonthlyBudgetLimit = 800, ColorHex = "#51CF66", Icon = "shopping_cart" },
-            new Category { Id = 3, Name = "Travel", MonthlyBudgetLimit = 1500, ColorHex = "#339AF0", Icon = "flight" },
-            new Category { Id = 4, Name = "Utilities", MonthlyBudgetLimit = 300, ColorHex = "#F59F00", Icon = "bolt" },
-            new Category { Id = 5, Name = "Electronics", MonthlyBudgetLimit = 1000, ColorHex = "#845EF7", Icon = "devices" }
-        );
+        // No more HasData seeding — categories are now per-user
+        // Default categories are created for each new user via AuthService.RegisterAsync
     }
 }

@@ -84,7 +84,11 @@ Chart.register(...registerables);
           <div class="stat-card-top">
             <span class="stat-label">Total Monthly Budget</span>
             <div class="stat-icon-box">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+              </svg>
             </div>
           </div>
           <div class="stat-value">{{ totalBudgetLimit() | number:'1.2-2' }}</div>
@@ -782,6 +786,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private categoryChartInstance?: Chart;
   private trendChartInstance?: Chart;
+  private renderTimer?: any;
 
   readonly currentMonthName = signal<string>(new Date().toLocaleString('default', { month: 'long' }));
   readonly currentYear = signal<number>(new Date().getFullYear());
@@ -792,7 +797,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       this.expenseService.expenses();
       this.categoryService.categories();
 
-      setTimeout(() => {
+      if (this.renderTimer) {
+        clearTimeout(this.renderTimer);
+      }
+      this.renderTimer = setTimeout(() => {
         this.renderCharts();
       }, 50);
     });
@@ -808,6 +816,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.renderTimer) {
+      clearTimeout(this.renderTimer);
+    }
     this.destroyCharts();
   }
 

@@ -18,7 +18,7 @@ public class ScanService : IScanService
         _context = context;
     }
 
-    public async Task<ScanPreviewDto> ScanAndPreviewAsync(byte[] imageBytes, string fileName, string contentType)
+    public async Task<ScanPreviewDto> ScanAndPreviewAsync(byte[] imageBytes, string fileName, string contentType, int userId)
     {
         var uploadTask = _storage.UploadAsync(imageBytes, fileName, contentType);
         var scanTask = _gemini.ScanReceiptAsync(imageBytes, contentType);
@@ -55,7 +55,7 @@ public class ScanService : IScanService
             );
         }
 
-        var categories = await _context.Categories.ToListAsync();
+        var categories = await _context.Categories.Where(c => c.UserId == userId).ToListAsync();
         if (categories.Count == 0)
         {
             var defaultCat = new SpendWise.Domain.Entities.Category
@@ -63,7 +63,8 @@ public class ScanService : IScanService
                 Name = "General",
                 MonthlyBudgetLimit = 500,
                 ColorHex = "#4f46e5",
-                Icon = "📁"
+                Icon = "📁",
+                UserId = userId
             };
             _context.Categories.Add(defaultCat);
             await _context.SaveChangesAsync();
@@ -80,6 +81,7 @@ public class ScanService : IScanService
 
         var monthlySpent = await _context.Expenses
             .Where(e => e.CategoryId == matched.Id
+                     && e.UserId == userId
                      && e.ExpenseDate >= startOfMonth
                      && e.ExpenseDate < endOfMonth)
             .SumAsync(e => (decimal?)e.TotalAmount) ?? 0m;

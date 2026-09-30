@@ -2,6 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '../../../core/services/theme.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
   selector: 'app-navbar',
@@ -13,8 +15,10 @@ import { ThemeService } from '../../../core/services/theme.service';
         <div class="brand">
           <a routerLink="/dashboard" class="brand-link">
             <div class="brand-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
               </svg>
             </div>
             <span class="brand-title">SpendWisely</span>
@@ -40,7 +44,7 @@ import { ThemeService } from '../../../core/services/theme.service';
           </li>
         </ul>
 
-        <!-- Action Items (Theme toggle & Scan button) -->
+        <!-- Action Items (Theme toggle, Scan button, User Profile & Logout) -->
         <div class="nav-actions">
           <!-- Theme Toggle Button -->
           <button 
@@ -50,12 +54,10 @@ import { ThemeService } from '../../../core/services/theme.service';
             [title]="themeService.currentTheme() === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
             aria-label="Toggle theme">
             @if (themeService.currentTheme() === 'dark') {
-              <!-- Sun Icon for switching to light -->
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
               </svg>
             } @else {
-              <!-- Moon Icon for switching to dark -->
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
               </svg>
@@ -69,6 +71,25 @@ import { ThemeService } from '../../../core/services/theme.service';
             <span>Scan Receipt</span>
           </a>
 
+          <!-- User Profile & Logout -->
+          @if (authService.currentUser(); as user) {
+            <div class="user-menu">
+              <div class="user-pill" [title]="user.email">
+                <span class="user-avatar">{{ getInitials(user.name) }}</span>
+                <span class="user-name">{{ user.name }}</span>
+              </div>
+              <button 
+                type="button" 
+                class="logout-btn" 
+                (click)="onLogout()" 
+                title="Sign Out">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </button>
+            </div>
+          }
+
           <!-- Mobile Menu Trigger -->
           <button class="mobile-toggle" (click)="toggleMobileMenu()" aria-label="Toggle navigation menu">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
@@ -79,12 +100,24 @@ import { ThemeService } from '../../../core/services/theme.service';
       <!-- Mobile Dropdown -->
       @if (mobileMenuOpen()) {
         <div class="mobile-menu animate-fade-in">
+          @if (authService.currentUser(); as user) {
+            <div class="mobile-user-info">
+              <span class="user-avatar">{{ getInitials(user.name) }}</span>
+              <div>
+                <strong>{{ user.name }}</strong>
+                <small>{{ user.email }}</small>
+              </div>
+            </div>
+          }
           <a routerLink="/dashboard" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Dashboard</a>
           <a routerLink="/expenses" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Expenses</a>
           <a routerLink="/categories" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Categories</a>
           <a routerLink="/scan" (click)="closeMobileMenu()" class="btn btn-primary btn-sm" style="margin-top: 0.5rem; justify-content: center;">
             Scan Receipt
           </a>
+          <button (click)="onLogout(); closeMobileMenu()" class="btn btn-secondary btn-sm" style="margin-top: 0.25rem; justify-content: center;">
+            Sign Out
+          </button>
         </div>
       }
     </header>
@@ -167,6 +200,86 @@ import { ThemeService } from '../../../core/services/theme.service';
       gap: 0.75rem;
     }
 
+    .theme-toggle-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .theme-toggle-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-card-hover);
+      border-color: var(--border-medium);
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-left: 0.25rem;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.65rem 0.25rem 0.35rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      font-size: 0.825rem;
+    }
+
+    .user-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary) 0%, #845EF7 100%);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .logout-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .logout-btn:hover {
+      color: var(--accent-rose);
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
     .mobile-toggle {
       display: none;
       background: transparent;
@@ -185,6 +298,26 @@ import { ThemeService } from '../../../core/services/theme.service';
       border-bottom: 1px solid var(--border-subtle);
     }
 
+    .mobile-user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .mobile-user-info strong {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .mobile-user-info small {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
     .mobile-link {
       padding: 0.5rem 0.75rem;
       color: var(--text-secondary);
@@ -197,8 +330,9 @@ import { ThemeService } from '../../../core/services/theme.service';
       background: var(--primary-subtle);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 820px) {
       .nav-links { display: none; }
+      .user-menu { display: none; }
       .mobile-toggle { display: block; }
       .mobile-menu { display: flex; }
     }
@@ -206,6 +340,9 @@ import { ThemeService } from '../../../core/services/theme.service';
 })
 export class NavbarComponent {
   readonly themeService = inject(ThemeService);
+  readonly authService = inject(AuthService);
+  private readonly notificationService = inject(NotificationService);
+
   readonly mobileMenuOpen = signal<boolean>(false);
 
   toggleMobileMenu(): void {
@@ -214,5 +351,17 @@ export class NavbarComponent {
 
   closeMobileMenu(): void {
     this.mobileMenuOpen.set(false);
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  onLogout(): void {
+    this.authService.logout();
+    this.notificationService.info('Signed Out', 'You have been signed out successfully.');
   }
 }

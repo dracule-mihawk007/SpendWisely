@@ -17,11 +17,12 @@ public class ExpenseService : IExpenseService
         _context = context;
     }
 
-    public async Task<List<ExpenseDto>> GetAllAsync(ExpenseFilterDto filter)
+    public async Task<List<ExpenseDto>> GetAllAsync(ExpenseFilterDto filter, int userId)
     {
         var query = _context.Expenses
             .Include(e => e.Category)
             .Include(e => e.Items)
+            .Where(e => e.UserId == userId)
             .AsQueryable();
 
         if (filter.FromDate.HasValue)
@@ -43,17 +44,17 @@ public class ExpenseService : IExpenseService
         return list.Select(MapToDto).ToList();
     }
 
-    public async Task<ExpenseDto?> GetByIdAsync(int id)
+    public async Task<ExpenseDto?> GetByIdAsync(int id, int userId)
     {
         var expense = await _context.Expenses
             .Include(e => e.Category)
             .Include(e => e.Items)
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
 
         return expense is null ? null : MapToDto(expense);
     }
 
-    public async Task<ExpenseDto> CreateAsync(CreateExpenseDto dto)
+    public async Task<ExpenseDto> CreateAsync(CreateExpenseDto dto, int userId)
     {
         var expense = new Expense
         {
@@ -63,6 +64,7 @@ public class ExpenseService : IExpenseService
             TaxAmount = dto.TaxAmount,
             ReceiptImageUrl = dto.ReceiptImageUrl,
             CategoryId = dto.CategoryId,
+            UserId = userId,
             CreatedAt = DateTime.UtcNow,
             Items = dto.Items.Select(i => new ExpenseItem
             {
@@ -81,9 +83,9 @@ public class ExpenseService : IExpenseService
         return MapToDto(expense);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, int userId)
     {
-        var expense = await _context.Expenses.FindAsync(id);
+        var expense = await _context.Expenses.FirstOrDefaultAsync(e => e.Id == id && e.UserId == userId);
         if (expense is null) return false;
 
         _context.Expenses.Remove(expense);
@@ -91,19 +93,20 @@ public class ExpenseService : IExpenseService
         return true;
     }
 
-    public async Task<decimal> GetMonthlyTotalByCategoryAsync(int categoryId, int year, int month)
+    public async Task<decimal> GetMonthlyTotalByCategoryAsync(int categoryId, int year, int month, int userId)
     {
         var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddMonths(1);
 
         return await _context.Expenses
             .Where(e => e.CategoryId == categoryId
+                     && e.UserId == userId
                      && e.ExpenseDate >= start
                      && e.ExpenseDate < end)
             .SumAsync(e => (decimal?)e.TotalAmount) ?? 0m;
     }
 
-    public async Task<DashboardAnalyticsDto> GetAnalyticsAsync(int? year, int? month)
+    public async Task<DashboardAnalyticsDto> GetAnalyticsAsync(int? year, int? month, int userId)
     {
         var now = DateTime.UtcNow;
         var targetYear = year ?? now.Year;
@@ -112,17 +115,17 @@ public class ExpenseService : IExpenseService
         var startOfMonth = new DateTime(targetYear, targetMonth, 1, 0, 0, 0, DateTimeKind.Utc);
         var endOfMonth = startOfMonth.AddMonths(1);
 
-        var categories = await _context.Categories.AsNoTracking().ToListAsync();
+        var categories = await _context.Categories.Where(c => c.UserId == userId).AsNoTracking().ToListAsync();
 
         var monthExpenses = await _context.Expenses
             .AsNoTracking()
-            .Where(e => e.ExpenseDate >= startOfMonth && e.ExpenseDate < endOfMonth)
+            .Where(e => e.UserId == userId && e.ExpenseDate >= startOfMonth && e.ExpenseDate < endOfMonth)
             .ToListAsync();
 
         var sixMonthsAgo = startOfMonth.AddMonths(-5);
         var trendExpenses = await _context.Expenses
             .AsNoTracking()
-            .Where(e => e.ExpenseDate >= sixMonthsAgo && e.ExpenseDate < endOfMonth)
+            .Where(e => e.UserId == userId && e.ExpenseDate >= sixMonthsAgo && e.ExpenseDate < endOfMonth)
             .ToListAsync();
 
         var totalSpentThisMonth = monthExpenses.Sum(e => e.TotalAmount);
@@ -173,9 +176,9 @@ public class ExpenseService : IExpenseService
         );
     }
 
-    public async Task<byte[]> ExportExpensesCsvAsync(ExpenseFilterDto filter)
+    public async Task<byte[]> ExportExpensesCsvAsync(ExpenseFilterDto filter, int userId)
     {
-        var expenses = await GetAllAsync(filter);
+        var expenses = await GetAllAsync(filter, userId);
         var sb = new StringBuilder();
 
         sb.AppendLine("Date,Merchant,Category,Items Count,Tax,Total,Receipt Image");

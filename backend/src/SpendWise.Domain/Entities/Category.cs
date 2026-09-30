@@ -8,5 +8,8 @@ public class Category
     public string ColorHex { get; set; } = string.Empty;
     public string Icon { get; set; } = string.Empty;
 
+    public int UserId { get; set; }
+    public AppUser User { get; set; } = null!;
+
     public ICollection<Expense> Expenses { get; set; } = new List<Expense>();
 }

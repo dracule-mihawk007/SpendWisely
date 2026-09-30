@@ -15,27 +15,29 @@ public class CategoryService : ICategoryService
         _context = context;
     }
 
-    public async Task<List<CategoryDto>> GetAllAsync()
+    public async Task<List<CategoryDto>> GetAllAsync(int userId)
     {
         return await _context.Categories
+            .Where(c => c.UserId == userId)
             .Select(c => new CategoryDto(c.Id, c.Name, c.MonthlyBudgetLimit, c.ColorHex, c.Icon))
             .ToListAsync();
     }
 
-    public async Task<CategoryDto?> GetByIdAsync(int id)
+    public async Task<CategoryDto?> GetByIdAsync(int id, int userId)
     {
-        var c = await _context.Categories.FindAsync(id);
+        var c = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
         return c is null ? null : new CategoryDto(c.Id, c.Name, c.MonthlyBudgetLimit, c.ColorHex, c.Icon);
     }
 
-    public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto)
+    public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, int userId)
     {
         var category = new Category
         {
             Name = dto.Name,
             MonthlyBudgetLimit = dto.MonthlyBudgetLimit,
             ColorHex = dto.ColorHex,
-            Icon = dto.Icon
+            Icon = dto.Icon,
+            UserId = userId
         };
 
         _context.Categories.Add(category);
@@ -44,9 +46,9 @@ public class CategoryService : ICategoryService
         return new CategoryDto(category.Id, category.Name, category.MonthlyBudgetLimit, category.ColorHex, category.Icon);
     }
 
-    public async Task<CategoryDto?> UpdateAsync(int id, UpdateCategoryDto dto)
+    public async Task<CategoryDto?> UpdateAsync(int id, UpdateCategoryDto dto, int userId)
     {
-        var category = await _context.Categories.FindAsync(id);
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
         if (category is null) return null;
 
         category.Name = dto.Name;
@@ -59,16 +61,14 @@ public class CategoryService : ICategoryService
         return new CategoryDto(category.Id, category.Name, category.MonthlyBudgetLimit, category.ColorHex, category.Icon);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, int userId)
     {
-        var category = await _context.Categories.FindAsync(id);
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
         if (category is null) return false;
 
-        var hasExpenses = await _context.Expenses.AnyAsync(e => e.CategoryId == id);
+        var hasExpenses = await _context.Expenses.AnyAsync(e => e.CategoryId == id && e.UserId == userId);
         if (hasExpenses)
-        {
             throw new InvalidOperationException("Cannot delete category because it has active expenses.");
-        }
 
         _context.Categories.Remove(category);
         await _context.SaveChangesAsync();

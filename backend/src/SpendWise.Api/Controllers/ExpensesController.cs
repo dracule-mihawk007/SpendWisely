@@ -1,9 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpendWise.Application.DTOs;
 using SpendWise.Application.Interfaces;
+using System.Security.Claims;
 
 namespace SpendWise.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ExpensesController : ControllerBase
@@ -17,6 +20,13 @@ public class ExpensesController : ControllerBase
         _scanService = scanService;
     }
 
+    private int GetUserId()
+    {
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier)
+               ?? User.FindFirstValue("sub");
+        return int.TryParse(sub, out var id) ? id : 0;
+    }
+
     [HttpGet]
     public async Task<ActionResult<List<ExpenseDto>>> GetAll(
         [FromQuery] DateTime? fromDate,
@@ -24,27 +34,27 @@ public class ExpensesController : ControllerBase
         [FromQuery] int? categoryId)
     {
         var filter = new ExpenseFilterDto(fromDate, toDate, categoryId);
-        return Ok(await _expenseService.GetAllAsync(filter));
+        return Ok(await _expenseService.GetAllAsync(filter, GetUserId()));
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ExpenseDto>> GetById(int id)
     {
-        var expense = await _expenseService.GetByIdAsync(id);
+        var expense = await _expenseService.GetByIdAsync(id, GetUserId());
         return expense is null ? NotFound() : Ok(expense);
     }
 
     [HttpPost]
     public async Task<ActionResult<ExpenseDto>> Create([FromBody] CreateExpenseDto dto)
     {
-        var created = await _expenseService.CreateAsync(dto);
+        var created = await _expenseService.CreateAsync(dto, GetUserId());
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var deleted = await _expenseService.DeleteAsync(id);
+        var deleted = await _expenseService.DeleteAsync(id, GetUserId());
         return deleted ? NoContent() : NotFound();
     }
 
@@ -54,7 +64,7 @@ public class ExpensesController : ControllerBase
         [FromQuery] int year,
         [FromQuery] int month)
     {
-        var total = await _expenseService.GetMonthlyTotalByCategoryAsync(categoryId, year, month);
+        var total = await _expenseService.GetMonthlyTotalByCategoryAsync(categoryId, year, month, GetUserId());
         return Ok(total);
     }
 
@@ -63,7 +73,7 @@ public class ExpensesController : ControllerBase
         [FromQuery] int? year,
         [FromQuery] int? month)
     {
-        var analytics = await _expenseService.GetAnalyticsAsync(year, month);
+        var analytics = await _expenseService.GetAnalyticsAsync(year, month, GetUserId());
         return Ok(analytics);
     }
 
@@ -74,7 +84,7 @@ public class ExpensesController : ControllerBase
         [FromQuery] int? categoryId)
     {
         var filter = new ExpenseFilterDto(fromDate, toDate, categoryId);
-        var csvBytes = await _expenseService.ExportExpensesCsvAsync(filter);
+        var csvBytes = await _expenseService.ExportExpensesCsvAsync(filter, GetUserId());
         var fileName = $"spendwisely-expenses-{DateTime.UtcNow:yyyyMMdd-HHmm}.csv";
         return File(csvBytes, "text/csv", fileName);
     }
@@ -96,7 +106,7 @@ public class ExpensesController : ControllerBase
 
         try
         {
-            var preview = await _scanService.ScanAndPreviewAsync(bytes, file.FileName, file.ContentType);
+            var preview = await _scanService.ScanAndPreviewAsync(bytes, file.FileName, file.ContentType, GetUserId());
             return Ok(preview);
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("503"))

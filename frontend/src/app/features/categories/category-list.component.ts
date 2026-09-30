@@ -86,7 +86,12 @@ import { formatCategoryIcon } from '../../core/utils/icon.utils';
           <div class="modal-dialog glass-card" (click)="$event.stopPropagation()">
             <div class="modal-header">
               <h3>{{ editingCategory() ? 'Edit Category' : 'Create Category' }}</h3>
-              <button class="modal-close" (click)="closeModal()">✕</button>
+              <button class="modal-close-btn" (click)="closeModal()" aria-label="Close dialog">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
 
             <div class="modal-body">

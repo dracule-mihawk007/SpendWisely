@@ -1,6 +1,9 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using SpendWise.Application.Interfaces;
 using SpendWise.Infrastructure.Persistence;
 using SpendWise.Infrastructure.Services;
@@ -14,6 +17,7 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<IScanService, ScanService>();
@@ -28,6 +32,29 @@ public static class DependencyInjection
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        // JWT Authentication
+        var jwtKey = configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+        var jwtIssuer = configuration["Jwt:Issuer"] ?? "SpendWisely";
+        var jwtAudience = configuration["Jwt:Audience"] ?? "SpendWiselyApp";
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtIssuer,
+                    ValidAudience = jwtAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+        services.AddAuthorization();
 
         return services;
     }

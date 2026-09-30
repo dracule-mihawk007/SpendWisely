@@ -50,7 +50,7 @@ export type SortDirection = 'asc' | 'desc';
         <div class="filter-grid">
           <div class="filter-item">
             <label class="form-label">Search Merchant</label>
-            <input type="text" class="form-control" placeholder="Search merchant..." [(ngModel)]="searchQuery">
+            <input type="text" class="form-control" placeholder="Search merchant..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)">
           </div>
 
           <div class="filter-item">
@@ -117,8 +117,8 @@ export type SortDirection = 'asc' | 'desc';
                   <th (click)="toggleSort('merchant')" class="sortable-th">
                     <div class="th-content">
                       <span>Merchant & Items</span>
-                      @if (sortField === 'merchant') {
-                        <span class="sort-indicator">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                      @if (sortField() === 'merchant') {
+                        <span class="sort-indicator">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
                       }
                     </div>
                   </th>
@@ -126,8 +126,8 @@ export type SortDirection = 'asc' | 'desc';
                   <th (click)="toggleSort('date')" class="sortable-th">
                     <div class="th-content">
                       <span>Date</span>
-                      @if (sortField === 'date') {
-                        <span class="sort-indicator">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                      @if (sortField() === 'date') {
+                        <span class="sort-indicator">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
                       }
                     </div>
                   </th>
@@ -136,8 +136,8 @@ export type SortDirection = 'asc' | 'desc';
                   <th (click)="toggleSort('amount')" class="text-right sortable-th">
                     <div class="th-content th-content-right">
                       <span>Total</span>
-                      @if (sortField === 'amount') {
-                        <span class="sort-indicator">{{ sortDirection === 'asc' ? '↑' : '↓' }}</span>
+                      @if (sortField() === 'amount') {
+                        <span class="sort-indicator">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
                       }
                     </div>
                   </th>
@@ -218,7 +218,12 @@ export type SortDirection = 'asc' | 'desc';
           <div class="receipt-lightbox glass-card" (click)="$event.stopPropagation()">
             <div class="lightbox-header">
               <h4>Scanned Receipt</h4>
-              <button class="modal-close" (click)="closeReceiptModal()">✕</button>
+              <button class="modal-close-btn" (click)="closeReceiptModal()" aria-label="Close receipt preview">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
             <div class="lightbox-body">
               <img [src]="activeReceiptUrl()" alt="Receipt image" class="lightbox-img">
@@ -232,7 +237,12 @@ export type SortDirection = 'asc' | 'desc';
           <div class="modal-dialog glass-card" (click)="$event.stopPropagation()" style="max-width: 580px;">
             <div class="modal-header">
               <h3>Add Expense Manually</h3>
-              <button class="modal-close" (click)="closeAddModal()">✕</button>
+              <button class="modal-close-btn" (click)="closeAddModal()" aria-label="Close dialog">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
 
             <div class="modal-body">
@@ -281,7 +291,12 @@ export type SortDirection = 'asc' | 'desc';
                     <input type="number" min="1" class="form-control" style="width: 65px;" placeholder="Qty" [(ngModel)]="it.quantity" (ngModelChange)="updateManualItemTotal($index)">
                     <input type="number" step="0.01" min="0" class="form-control" style="width: 90px;" placeholder="Price" [(ngModel)]="it.unitPrice" (ngModelChange)="updateManualItemTotal($index)">
                     <span class="manual-item-total">{{ it.totalPrice | number:'1.2-2' }}</span>
-                    <button type="button" class="btn-icon-subtle btn-danger-hover" (click)="removeManualItem($index)">✕</button>
+                    <button type="button" class="btn-icon-subtle btn-danger-hover" (click)="removeManualItem($index)" title="Remove item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
                   </div>
                 }
               </div>
@@ -634,6 +649,72 @@ export type SortDirection = 'asc' | 'desc';
       text-align: right;
     }
 
+    /* Modal Dialog & Backdrop */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-modal-backdrop);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    .modal-dialog {
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6);
+      padding: 1.75rem;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .modal-header h3 {
+      font-size: 1.2rem;
+      margin: 0;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.35rem;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .modal-close-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-surface);
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.85rem;
+      margin-top: 1.5rem;
+      padding-top: 1.15rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
     @media (max-width: 950px) {
       .filter-grid { grid-template-columns: 1fr; }
       .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -645,13 +726,13 @@ export class ExpenseListComponent implements OnInit {
   readonly categoryService = inject(CategoryService);
   private readonly notificationService = inject(NotificationService);
 
-  searchQuery = '';
+  readonly searchQuery = signal<string>('');
   filterCategoryId: number | null = null;
   filterFromDate: string | null = null;
   filterToDate: string | null = null;
 
-  sortField: SortField = 'date';
-  sortDirection: SortDirection = 'desc';
+  readonly sortField = signal<SortField>('date');
+  readonly sortDirection = signal<SortDirection>('desc');
   currentSortOption = 'date-desc';
 
   readonly isExporting = signal<boolean>(false);
@@ -673,7 +754,9 @@ export class ExpenseListComponent implements OnInit {
 
   filteredExpenses = computed(() => {
     let list = this.expenseService.expenses();
-    const query = this.searchQuery.toLowerCase().trim();
+    const query = this.searchQuery().toLowerCase().trim();
+    const field = this.sortField();
+    const dir = this.sortDirection();
 
     if (query) {
       list = list.filter(e => 
@@ -685,14 +768,14 @@ export class ExpenseListComponent implements OnInit {
 
     return [...list].sort((a, b) => {
       let comparison = 0;
-      if (this.sortField === 'date') {
+      if (field === 'date') {
         comparison = new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime();
-      } else if (this.sortField === 'amount') {
+      } else if (field === 'amount') {
         comparison = a.totalAmount - b.totalAmount;
-      } else if (this.sortField === 'merchant') {
+      } else if (field === 'merchant') {
         comparison = a.merchantName.localeCompare(b.merchantName);
       }
-      return this.sortDirection === 'asc' ? comparison : -comparison;
+      return dir === 'asc' ? comparison : -comparison;
     });
   });
 
@@ -701,7 +784,7 @@ export class ExpenseListComponent implements OnInit {
   });
 
   hasActiveFilters(): boolean {
-    return !!(this.searchQuery || this.filterCategoryId !== null || this.filterFromDate || this.filterToDate);
+    return !!(this.searchQuery() || this.filterCategoryId !== null || this.filterFromDate || this.filterToDate);
   }
 
   getCategoryIcon(icon: string | null | undefined): string {
@@ -722,30 +805,30 @@ export class ExpenseListComponent implements OnInit {
   }
 
   resetFilters(): void {
-    this.searchQuery = '';
+    this.searchQuery.set('');
     this.filterCategoryId = null;
     this.filterFromDate = null;
     this.filterToDate = null;
     this.currentSortOption = 'date-desc';
-    this.sortField = 'date';
-    this.sortDirection = 'desc';
+    this.sortField.set('date');
+    this.sortDirection.set('desc');
     this.expenseService.loadExpenses({}).subscribe();
   }
 
   onSortOptionChange(): void {
     const [field, dir] = this.currentSortOption.split('-');
-    this.sortField = field as SortField;
-    this.sortDirection = dir as SortDirection;
+    this.sortField.set(field as SortField);
+    this.sortDirection.set(dir as SortDirection);
   }
 
   toggleSort(field: SortField): void {
-    if (this.sortField === field) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    if (this.sortField() === field) {
+      this.sortDirection.update(d => d === 'asc' ? 'desc' : 'asc');
     } else {
-      this.sortField = field;
-      this.sortDirection = field === 'date' || field === 'amount' ? 'desc' : 'asc';
+      this.sortField.set(field);
+      this.sortDirection.set(field === 'date' || field === 'amount' ? 'desc' : 'asc');
     }
-    this.currentSortOption = `${this.sortField}-${this.sortDirection}`;
+    this.currentSortOption = `${this.sortField()}-${this.sortDirection()}`;
   }
 
   toggleExpand(id: number): void {
