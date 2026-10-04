@@ -56,6 +56,17 @@ public class AuthController : ControllerBase
         return profile is null ? NotFound() : Ok(profile);
     }
 
+    [Authorize]
+    [HttpDelete("account")]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        var userId = GetUserId();
+        if (userId == 0) return Unauthorized();
+
+        var result = await _authService.DeleteAccountAsync(userId);
+        return result ? NoContent() : NotFound();
+    }
+
     private int GetUserId()
     {
         var sub = User.FindFirstValue(ClaimTypes.NameIdentifier)

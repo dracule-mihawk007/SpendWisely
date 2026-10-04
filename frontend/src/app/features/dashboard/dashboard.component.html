@@ -1,0 +1,274 @@
+<div class="container animate-fade-in">
+  <div class="dashboard-header">
+    <div>
+      <div class="greeting-row">
+        <h1>Dashboard</h1>
+        <span class="month-pill">
+          {{ currentMonthName() }} {{ currentYear() }}
+        </span>
+      </div>
+      <p>Track your monthly spending, category budget limits, and scanned receipts.</p>
+    </div>
+
+    <div class="header-cta-group">
+      <a routerLink="/scan" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span>Scan Receipt</span>
+      </a>
+      <a routerLink="/expenses" class="btn btn-secondary">
+        <span>All Expenses</span>
+      </a>
+    </div>
+  </div>
+
+  @if (overBudgetCategories().length > 0) {
+    <div class="alert-banner animate-fade-in">
+      <div class="alert-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="alert-text">
+        <strong>Budget Exceeded Alert</strong>
+        <p>
+          The following categories exceeded monthly limits:
+          @for (c of overBudgetCategories(); track c.id; let last = $last) {
+            <span><strong>{{ c.name }}</strong> (Spent: {{ getCategorySpent(c.id) | number:'1.0-0' }} / Limit: {{ c.monthlyBudgetLimit | number:'1.0-0' }}){{ last ? '' : ', ' }}</span>
+          }
+        </p>
+      </div>
+    </div>
+  }
+
+  <div class="grid-cols-4 stat-cards-row">
+    <div class="glass-card stat-card">
+      <div class="stat-card-top">
+        <span class="stat-label">Spent This Month</span>
+        <div class="stat-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </div>
+      </div>
+      <div class="stat-value">{{ totalSpentThisMonth() | number:'1.2-2' }}</div>
+      <span class="stat-subtext">Across all categories</span>
+    </div>
+
+    <div class="glass-card stat-card">
+      <div class="stat-card-top">
+        <span class="stat-label">Total Monthly Budget</span>
+        <div class="stat-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+            <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-value">{{ totalBudgetLimit() | number:'1.2-2' }}</div>
+      <span class="stat-subtext">{{ categoryService.categories().length }} active categories</span>
+    </div>
+
+    <div class="glass-card stat-card">
+      <div class="stat-card-top">
+        <span class="stat-label">Remaining Budget</span>
+        <div class="stat-icon-box" [class.icon-rose]="isOverallOverBudget()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+      </div>
+      <div class="stat-value" [class.text-danger]="isOverallOverBudget()">
+        {{ remainingBudget() | number:'1.2-2' }}
+      </div>
+      <span class="stat-subtext" [class.text-danger]="isOverallOverBudget()">
+        {{ isOverallOverBudget() ? 'Budget exceeded' : 'Available balance' }}
+      </span>
+    </div>
+
+    <div class="glass-card stat-card">
+      <div class="stat-card-top">
+        <span class="stat-label">Logged Receipts</span>
+        <div class="stat-icon-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+      </div>
+      <div class="stat-value">{{ expenseService.expenses().length }}</div>
+      <span class="stat-subtext">{{ receiptCountWithImages() }} with receipt image</span>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="glass-card chart-card">
+      <div class="card-title-row">
+        <div>
+          <h3>Category Breakdown</h3>
+          <p>Spending distribution across active categories</p>
+        </div>
+        <span class="badge badge-primary">{{ categorySpendingData().labels.length }} Categories</span>
+      </div>
+
+      <div class="chart-wrapper">
+        @if (hasCategorySpending()) {
+          <div class="canvas-container">
+            <canvas #categoryCanvas></canvas>
+          </div>
+          <div class="category-legend-list">
+            @for (item of categorySpendingLegend(); track item.name) {
+              <div class="legend-row">
+                <div class="legend-left">
+                  <span class="legend-color-dot" [style.background-color]="item.color"></span>
+                  <span class="legend-label">{{ item.name }}</span>
+                </div>
+                <div class="legend-right">
+                  <span class="legend-amount">{{ item.amount | number:'1.2-2' }}</span>
+                  <span class="legend-pct">{{ item.percentage | number:'1.0-0' }}%</span>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="chart-empty-state">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+            </svg>
+            <p>No category spending recorded this month.</p>
+            <a routerLink="/scan" class="btn btn-sm btn-primary">Scan First Receipt</a>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="glass-card chart-card">
+      <div class="card-title-row">
+        <div>
+          <h3>Monthly Spending Trend</h3>
+          <p>Total expenditure across the past 6 months</p>
+        </div>
+        <span class="badge badge-emerald">6-Month Trend</span>
+      </div>
+
+      <div class="chart-wrapper">
+        <div class="canvas-container-full">
+          <canvas #trendCanvas></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-main-grid">
+    <div class="glass-card category-breakdown-card">
+      <div class="card-title-row">
+        <div>
+          <h3>Category Budget Health</h3>
+          <p>Spending progress relative to monthly category limits</p>
+        </div>
+        <a routerLink="/categories" class="btn btn-sm btn-secondary">Manage Categories</a>
+      </div>
+
+      <div class="category-bars-list">
+        @for (cat of categoryService.categories(); track cat.id) {
+          @let spent = getCategorySpent(cat.id);
+          @let pct = cat.monthlyBudgetLimit > 0 ? (spent / cat.monthlyBudgetLimit) * 100 : 0;
+          <div class="category-bar-item">
+            <div class="category-bar-header">
+              <div class="cat-title-group">
+                <span class="cat-icon-badge" [style.background-color]="cat.colorHex + '20'">
+                  {{ getCategoryIcon(cat.icon) }}
+                </span>
+                <span class="cat-name">{{ cat.name }}</span>
+              </div>
+              <div class="cat-spending-text">
+                <span class="spent-number">{{ spent | number:'1.0-0' }}</span>
+                <span class="limit-divider">/ {{ cat.monthlyBudgetLimit | number:'1.0-0' }}</span>
+                <span class="pct-badge" [class.pct-over]="pct >= 100" [class.pct-warn]="pct >= 85 && pct < 100">
+                  {{ pct | number:'1.0-0' }}%
+                </span>
+              </div>
+            </div>
+
+            <div class="progress-track">
+              <div
+                class="progress-fill"
+                [style.width.%]="pct > 100 ? 100 : pct"
+                [style.background-color]="getBarColor(pct, cat.colorHex)">
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (categoryService.categories().length === 0) {
+          <div class="empty-hint">
+            <p>No categories found.</p>
+            <a routerLink="/categories" class="btn btn-sm btn-primary">Create Category</a>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="glass-card scan-quick-card">
+      <div class="card-title-row" style="margin-bottom: 0.75rem;">
+        <div>
+          <h3>Receipt Scanner</h3>
+          <p>Upload a receipt image for automated itemization.</p>
+        </div>
+      </div>
+
+      <div class="scan-upload-area" (click)="router.navigate(['/scan'])">
+        <div class="scan-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>
+          </svg>
+        </div>
+        <span class="scan-area-title">Click to Upload Receipt</span>
+        <span class="scan-area-sub">Supports PNG, JPG, WebP</span>
+      </div>
+
+      <div class="scan-features-list">
+        <div class="scan-feature-item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Automatic item &amp; tax extraction</span>
+        </div>
+        <div class="scan-feature-item">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Category auto-suggestion &amp; budget verification</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card recent-expenses-card" style="margin-top: 1.5rem;">
+    <div class="card-title-row">
+      <div>
+        <h3>Recent Transactions</h3>
+        <p>Recently logged expenses</p>
+      </div>
+      <a routerLink="/expenses" class="btn btn-sm btn-secondary">View All</a>
+    </div>
+
+    @if (recentExpenses().length === 0) {
+      <div class="empty-hint" style="padding: 2rem 1rem;">
+        <p>No transactions logged yet.</p>
+      </div>
+    } @else {
+      <div class="recent-list">
+        @for (expense of recentExpenses(); track expense.id) {
+          <div class="recent-row">
+            <div class="recent-left">
+              <span class="recent-icon-badge" [style.background-color]="getCategoryColor(expense.categoryId) + '20'">
+                {{ getCategoryIconById(expense.categoryId) }}
+              </span>
+              <div>
+                <div class="recent-merchant">{{ expense.merchantName }}</div>
+                <span class="recent-meta">{{ expense.categoryName }} • {{ expense.expenseDate | date:'mediumDate' }}</span>
+              </div>
+            </div>
+
+            <div class="recent-right">
+              <span class="recent-amount">{{ expense.totalAmount | number:'1.2-2' }}</span>
+              @if (expense.receiptImageUrl) {
+                <span class="badge badge-primary">Receipt</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

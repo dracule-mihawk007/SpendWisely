@@ -1,0 +1,424 @@
+<div class="container animate-fade-in">
+  <div class="page-header">
+    <div class="header-titles">
+      <h1>Log Expense</h1>
+      <p>Scan a receipt for automated extraction or manually log your transaction if you don't have a receipt.</p>
+    </div>
+
+    <!-- Mode Toggle Tabs -->
+    <div class="mode-switch-wrapper">
+      <div class="mode-tabs">
+        <button 
+          type="button" 
+          class="mode-tab-btn" 
+          [class.active]="activeMode() === 'scan'"
+          (click)="setMode('scan')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Scan Receipt</span>
+        </button>
+
+        <button 
+          type="button" 
+          class="mode-tab-btn" 
+          [class.active]="activeMode() === 'manual'"
+          (click)="setMode('manual')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span>Enter Manually</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN MODE: Upload Drop Zone -->
+  @if (activeMode() === 'scan' && !scanPreview() && !isScanning()) {
+    <div 
+      class="upload-dropzone" 
+      [class.drag-over]="isDragging()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      (click)="fileInput.click()">
+      
+      <input 
+        #fileInput 
+        type="file" 
+        accept="image/jpeg,image/png,image/webp" 
+        style="display: none" 
+        (change)="onFileSelected($event)">
+      
+      <div class="upload-icon-wrapper">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" x2="12" y1="3" y2="15"/>
+        </svg>
+      </div>
+
+      <h3>Drag and drop your receipt here, or <span class="highlight">browse</span></h3>
+      <p class="dropzone-hints">Supports PNG, JPG, JPEG, and WebP (up to 10MB)</p>
+
+      <div class="dropzone-footer-hint" (click)="$event.stopPropagation()">
+        <span>Forgot or lost your receipt?</span>
+        <button type="button" class="link-btn" (click)="setMode('manual')">
+          Enter details manually instead →
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Clean Circular Loading Spinner during scanning -->
+  @if (activeMode() === 'scan' && isScanning()) {
+    <div class="glass-card loading-card">
+      <div class="circular-spinner"></div>
+      <div class="loading-text">
+        <h3>Processing Receipt...</h3>
+        <p>Extracting merchant, date, tax, totals, and item breakdown</p>
+      </div>
+    </div>
+  }
+
+  <!-- SCAN MODE: Result & Verification Form -->
+  @if (activeMode() === 'scan' && scanPreview(); as preview) {
+    <div class="preview-layout">
+      <!-- Left Column: Receipt Image & Budget Warning -->
+      <div class="preview-sidebar">
+        <div class="glass-card receipt-preview-card">
+          <div class="card-header-row">
+            <h4>Receipt Preview</h4>
+            <button class="btn btn-sm btn-secondary" (click)="resetScanner()">Scan Another</button>
+          </div>
+
+          @if (localImagePreviewUrl()) {
+            <div class="image-viewport">
+              <img [src]="localImagePreviewUrl()" alt="Receipt preview" class="receipt-image">
+            </div>
+          } @else if (preview.receiptImageUrl) {
+            <div class="image-viewport">
+              <img [src]="preview.receiptImageUrl" alt="Receipt preview" class="receipt-image">
+            </div>
+          }
+
+          <!-- Budget Warning Alert Box -->
+          @if (preview.budgetWarning) {
+            <div class="budget-alert-box alert-danger">
+              <div class="alert-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div class="alert-body">
+                <strong>Budget Exceeded</strong>
+                <p>Total monthly spending will reach {{ (preview.monthlySpent + preview.total) | number:'1.2-2' }}, exceeding the {{ preview.monthlyBudgetLimit | number:'1.2-2' }} limit for {{ preview.suggestedCategoryName }}.</p>
+              </div>
+            </div>
+          } @else {
+            <div class="budget-alert-box alert-safe">
+              <div class="alert-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="alert-body">
+                <strong>Within Budget</strong>
+                <p>Current spent: {{ preview.monthlySpent | number:'1.2-2' }} / Limit: {{ preview.monthlyBudgetLimit | number:'1.2-2' }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right Column: Verification & Editable Form -->
+      <div class="preview-main">
+        <div class="glass-card">
+          <div class="form-section-title">
+            <h3>Extracted Details</h3>
+            <span class="badge badge-primary">Review & Confirm</span>
+          </div>
+
+          <div class="grid-cols-2" style="margin-top: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Merchant Name</label>
+              <input type="text" class="form-control" [(ngModel)]="formMerchant" placeholder="Merchant or Store name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Expense Date</label>
+              <input type="date" class="form-control" [(ngModel)]="formDate">
+            </div>
+          </div>
+
+          <div class="grid-cols-3">
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" [(ngModel)]="formCategoryId">
+                @for (cat of categoryService.categories(); track cat.id) {
+                  <option [value]="cat.id">{{ getCategoryIcon(cat.icon) }} {{ cat.name }} (Limit: {{ cat.monthlyBudgetLimit }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tax Amount</label>
+              <input type="number" step="0.01" min="0" class="form-control" [(ngModel)]="formTax" (ngModelChange)="recalculateTotal()">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Total Amount</label>
+              <input type="number" step="0.01" min="0" class="form-control" [(ngModel)]="formTotal" style="font-weight: 600;">
+            </div>
+          </div>
+
+          <!-- Itemized Table -->
+          <div class="items-section">
+            <div class="items-header">
+              <h4>Item Breakdown ({{ items().length }})</h4>
+              <button type="button" class="btn btn-sm btn-secondary" (click)="addItem()">
+                + Add Item
+              </button>
+            </div>
+
+            <div class="items-table-wrapper">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th style="width: 70px;">Qty</th>
+                    <th style="width: 105px;">Unit Price</th>
+                    <th style="width: 105px;">Total</th>
+                    <th style="width: 45px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of items(); track $index) {
+                    <tr>
+                      <td>
+                        <input type="text" class="form-control table-input" [(ngModel)]="item.description" placeholder="Item description">
+                      </td>
+                      <td>
+                        <input type="number" min="1" class="form-control table-input text-center" [(ngModel)]="item.quantity" (ngModelChange)="updateItemTotal($index)">
+                      </td>
+                      <td>
+                        <input type="number" step="0.01" min="0" class="form-control table-input" [(ngModel)]="item.unitPrice" (ngModelChange)="updateItemTotal($index)">
+                      </td>
+                      <td>
+                        <input type="number" step="0.01" min="0" class="form-control table-input" [(ngModel)]="item.totalPrice" (ngModelChange)="recalculateTotal()">
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn-icon-danger" (click)="removeItem($index)" title="Remove item">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                  @if (items().length === 0) {
+                    <tr>
+                      <td colspan="5" class="empty-items-cell">
+                        No individual items parsed. You can add items manually.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions-bar">
+            <button type="button" class="btn btn-secondary" (click)="resetScanner()">Discard</button>
+            <button type="button" class="btn btn-primary" [disabled]="isSaving()" (click)="saveExpense()">
+              @if (isSaving()) {
+                <span>Saving...</span>
+              } @else {
+                <span>Save Expense</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MANUAL MODE: Direct Expense Entry (No Receipt Required) -->
+  @if (activeMode() === 'manual') {
+    <div class="preview-layout">
+      <!-- Left Column: Helper Card & Category Insight -->
+      <div class="preview-sidebar">
+        <div class="glass-card receipt-preview-card">
+          <div class="card-header-row">
+            <h4>Manual Entry</h4>
+            <span class="badge badge-primary">Direct Entry</span>
+          </div>
+
+          <div class="manual-info-panel">
+            <div class="manual-info-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <h5>Forgot the receipt?</h5>
+            <p>No problem! Log transactions anytime by typing the merchant, choosing the category, and entering the total.</p>
+          </div>
+
+          @if (selectedCategory(); as cat) {
+            <div class="category-budget-card">
+              <div class="budget-card-title">
+                <span class="cat-chip" [style.background-color]="cat.colorHex + '20'" [style.color]="cat.colorHex">
+                  {{ getCategoryIcon(cat.icon) }} {{ cat.name }}
+                </span>
+              </div>
+              <div class="budget-row">
+                <span>Monthly Limit:</span>
+                <strong>{{ cat.monthlyBudgetLimit | number:'1.2-2' }}</strong>
+              </div>
+              <div class="budget-tip">
+                <span>Logging {{ formTotal | number:'1.2-2' }} under {{ cat.name }}</span>
+              </div>
+            </div>
+          }
+
+          <button type="button" class="btn btn-secondary btn-block" (click)="setMode('scan')" style="margin-top: 0.5rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>Found receipt? Scan image</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Manual Entry Form -->
+      <div class="preview-main">
+        <div class="glass-card">
+          <div class="form-section-title">
+            <h3>Expense Details</h3>
+            <span class="badge badge-emerald">Manual Mode</span>
+          </div>
+
+          <div class="grid-cols-2" style="margin-top: 1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Merchant / Store Name *</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="e.g. Starbucks, Uber, Walmart..." 
+                [(ngModel)]="formMerchant">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Date *</label>
+              <input type="date" class="form-control" [(ngModel)]="formDate">
+            </div>
+          </div>
+
+          <div class="grid-cols-3">
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <select class="form-select" [(ngModel)]="formCategoryId">
+                @for (cat of categoryService.categories(); track cat.id) {
+                  <option [value]="cat.id">{{ getCategoryIcon(cat.icon) }} {{ cat.name }} (Limit: {{ cat.monthlyBudgetLimit }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tax Amount</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                min="0" 
+                class="form-control" 
+                [(ngModel)]="formTax" 
+                (ngModelChange)="recalculateTotal()"
+                placeholder="0.00">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Total Amount *</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                min="0" 
+                class="form-control" 
+                [(ngModel)]="formTotal" 
+                style="font-weight: 700; font-size: 1.05rem;"
+                placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- Item Breakdown (Optional) -->
+          <div class="items-section">
+            <div class="items-header">
+              <div>
+                <h4>Item Breakdown (Optional)</h4>
+                <small style="color: var(--text-muted); font-size: 0.775rem;">Add line items if you want detailed tracking</small>
+              </div>
+              <button type="button" class="btn btn-sm btn-secondary" (click)="addItem()">
+                + Add Item
+              </button>
+            </div>
+
+            <div class="items-table-wrapper">
+              <table class="items-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th style="width: 70px;">Qty</th>
+                    <th style="width: 105px;">Unit Price</th>
+                    <th style="width: 105px;">Total</th>
+                    <th style="width: 45px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of items(); track $index) {
+                    <tr>
+                      <td>
+                        <input type="text" class="form-control table-input" [(ngModel)]="item.description" placeholder="Item description">
+                      </td>
+                      <td>
+                        <input type="number" min="1" class="form-control table-input text-center" [(ngModel)]="item.quantity" (ngModelChange)="updateItemTotal($index)">
+                      </td>
+                      <td>
+                        <input type="number" step="0.01" min="0" class="form-control table-input" [(ngModel)]="item.unitPrice" (ngModelChange)="updateItemTotal($index)">
+                      </td>
+                      <td>
+                        <input type="number" step="0.01" min="0" class="form-control table-input" [(ngModel)]="item.totalPrice" (ngModelChange)="recalculateTotal()">
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn-icon-danger" (click)="removeItem($index)" title="Remove item">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                  @if (items().length === 0) {
+                    <tr>
+                      <td colspan="5" class="empty-items-cell">
+                        No individual items added yet. You can add items or just specify the total above.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions-bar">
+            <button type="button" class="btn btn-secondary" (click)="clearManualForm()">Clear</button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              [disabled]="isSaving() || !formMerchant.trim() || formTotal <= 0" 
+              (click)="saveExpense()">
+              @if (isSaving()) {
+                <div class="spinner-sm"></div>
+                <span>Saving Expense...</span>
+              } @else {
+                <span>Save Expense</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

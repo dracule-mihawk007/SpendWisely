@@ -62,6 +62,10 @@ export class AuthService {
     );
   }
 
+  deleteAccount(): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/account`);
+  }
+
   logout(): void {
     try {
       localStorage.removeItem(TOKEN_KEY);

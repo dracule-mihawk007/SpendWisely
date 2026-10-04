@@ -71,6 +71,21 @@ public class AuthService : IAuthService
         return user is null ? null : new UserProfileDto(user.Id, user.Name, user.Email, user.CreatedAt);
     }
 
+    public async Task<bool> DeleteAccountAsync(int userId)
+    {
+        var user = await _context.Users
+            .Include(u => u.Expenses)
+                .ThenInclude(e => e.Items)
+            .Include(u => u.Categories)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user is null) return false;
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
     private AuthResponseDto IssueToken(AppUser user)
     {
         var jwtKey = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not configured.");

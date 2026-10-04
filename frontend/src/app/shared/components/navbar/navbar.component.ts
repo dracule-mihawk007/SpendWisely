@@ -9,334 +9,8 @@ import { NotificationService } from '../../../core/services/notification.service
   selector: 'app-navbar',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
-  template: `
-    <header class="navbar-wrapper">
-      <nav class="navbar container">
-        <div class="brand">
-          <a routerLink="/dashboard" class="brand-link">
-            <div class="brand-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                <polyline points="2 17 12 22 22 17"/>
-                <polyline points="2 12 12 17 22 12"/>
-              </svg>
-            </div>
-            <span class="brand-title">SpendWisely</span>
-          </a>
-        </div>
-
-        <!-- Navigation Links -->
-        <ul class="nav-links">
-          <li>
-            <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-link">
-              Dashboard
-            </a>
-          </li>
-          <li>
-            <a routerLink="/expenses" routerLinkActive="active" class="nav-link">
-              Expenses
-            </a>
-          </li>
-          <li>
-            <a routerLink="/categories" routerLinkActive="active" class="nav-link">
-              Categories
-            </a>
-          </li>
-        </ul>
-
-        <!-- Action Items (Theme toggle, Scan button, User Profile & Logout) -->
-        <div class="nav-actions">
-          <!-- Theme Toggle Button -->
-          <button 
-            type="button" 
-            class="theme-toggle-btn" 
-            (click)="themeService.toggleTheme()" 
-            [title]="themeService.currentTheme() === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-            aria-label="Toggle theme">
-            @if (themeService.currentTheme() === 'dark') {
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
-              </svg>
-            } @else {
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-              </svg>
-            }
-          </button>
-
-          <a routerLink="/scan" class="btn btn-primary btn-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>
-            </svg>
-            <span>Scan Receipt</span>
-          </a>
-
-          <!-- User Profile & Logout -->
-          @if (authService.currentUser(); as user) {
-            <div class="user-menu">
-              <div class="user-pill" [title]="user.email">
-                <span class="user-avatar">{{ getInitials(user.name) }}</span>
-                <span class="user-name">{{ user.name }}</span>
-              </div>
-              <button 
-                type="button" 
-                class="logout-btn" 
-                (click)="onLogout()" 
-                title="Sign Out">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-              </button>
-            </div>
-          }
-
-          <!-- Mobile Menu Trigger -->
-          <button class="mobile-toggle" (click)="toggleMobileMenu()" aria-label="Toggle navigation menu">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-          </button>
-        </div>
-      </nav>
-
-      <!-- Mobile Dropdown -->
-      @if (mobileMenuOpen()) {
-        <div class="mobile-menu animate-fade-in">
-          @if (authService.currentUser(); as user) {
-            <div class="mobile-user-info">
-              <span class="user-avatar">{{ getInitials(user.name) }}</span>
-              <div>
-                <strong>{{ user.name }}</strong>
-                <small>{{ user.email }}</small>
-              </div>
-            </div>
-          }
-          <a routerLink="/dashboard" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Dashboard</a>
-          <a routerLink="/expenses" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Expenses</a>
-          <a routerLink="/categories" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Categories</a>
-          <a routerLink="/scan" (click)="closeMobileMenu()" class="btn btn-primary btn-sm" style="margin-top: 0.5rem; justify-content: center;">
-            Scan Receipt
-          </a>
-          <button (click)="onLogout(); closeMobileMenu()" class="btn btn-secondary btn-sm" style="margin-top: 0.25rem; justify-content: center;">
-            Sign Out
-          </button>
-        </div>
-      }
-    </header>
-  `,
-  styles: [`
-    .navbar-wrapper {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-subtle);
-      height: var(--navbar-height);
-      transition: background-color var(--transition-normal), border-color var(--transition-normal);
-    }
-
-    .navbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 100%;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-
-    .brand-link {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      text-decoration: none;
-    }
-
-    .brand-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--radius-sm);
-      background: var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-    }
-
-    .brand-title {
-      font-family: var(--font-heading);
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      list-style: none;
-    }
-
-    .nav-link {
-      padding: 0.45rem 0.85rem;
-      border-radius: var(--radius-sm);
-      color: var(--text-secondary);
-      font-size: 0.875rem;
-      font-weight: 500;
-      transition: all var(--transition-fast);
-    }
-
-    .nav-link:hover {
-      color: var(--text-primary);
-      background: var(--bg-card-hover);
-    }
-
-    .nav-link.active {
-      color: var(--primary);
-      background: var(--primary-subtle);
-      font-weight: 600;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .theme-toggle-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-
-    .theme-toggle-btn:hover {
-      color: var(--text-primary);
-      background: var(--bg-card-hover);
-      border-color: var(--border-medium);
-    }
-
-    .user-menu {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-left: 0.25rem;
-    }
-
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.25rem 0.65rem 0.25rem 0.35rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 9999px;
-      font-size: 0.825rem;
-    }
-
-    .user-avatar {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary) 0%, #845EF7 100%);
-      color: #ffffff;
-      font-size: 0.75rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .user-name {
-      font-weight: 600;
-      color: var(--text-primary);
-      max-width: 120px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .logout-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-card);
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-
-    .logout-btn:hover {
-      color: var(--accent-rose);
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    .mobile-toggle {
-      display: none;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
-      cursor: pointer;
-      padding: 0.4rem;
-    }
-
-    .mobile-menu {
-      display: none;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 1rem 1.25rem;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .mobile-user-info {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding-bottom: 0.75rem;
-      margin-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-
-    .mobile-user-info strong {
-      display: block;
-      font-size: 0.9rem;
-      color: var(--text-primary);
-    }
-
-    .mobile-user-info small {
-      color: var(--text-muted);
-      font-size: 0.75rem;
-    }
-
-    .mobile-link {
-      padding: 0.5rem 0.75rem;
-      color: var(--text-secondary);
-      font-weight: 500;
-      border-radius: var(--radius-sm);
-    }
-
-    .mobile-link.active {
-      color: var(--primary);
-      background: var(--primary-subtle);
-    }
-
-    @media (max-width: 820px) {
-      .nav-links { display: none; }
-      .user-menu { display: none; }
-      .mobile-toggle { display: block; }
-      .mobile-menu { display: flex; }
-    }
-  `]
+  templateUrl: './navbar.component.html',
+  styleUrls: ['./navbar.component.css']
 })
 export class NavbarComponent {
   readonly themeService = inject(ThemeService);
@@ -344,6 +18,8 @@ export class NavbarComponent {
   private readonly notificationService = inject(NotificationService);
 
   readonly mobileMenuOpen = signal<boolean>(false);
+  readonly showDeleteConfirm = signal<boolean>(false);
+  readonly isDeleting = signal<boolean>(false);
 
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update(v => !v);
@@ -363,5 +39,32 @@ export class NavbarComponent {
   onLogout(): void {
     this.authService.logout();
     this.notificationService.info('Signed Out', 'You have been signed out successfully.');
+  }
+
+  confirmDeleteAccount(): void {
+    this.showDeleteConfirm.set(true);
+  }
+
+  cancelDeleteAccount(): void {
+    if (!this.isDeleting()) {
+      this.showDeleteConfirm.set(false);
+    }
+  }
+
+  onDeleteAccount(): void {
+    this.isDeleting.set(true);
+    this.authService.deleteAccount().subscribe({
+      next: () => {
+        this.isDeleting.set(false);
+        this.showDeleteConfirm.set(false);
+        this.notificationService.success('Account Deleted', 'Your account has been permanently deleted.');
+        this.authService.logout();
+      },
+      error: (err) => {
+        this.isDeleting.set(false);
+        const msg = err?.error?.message || 'Failed to delete account. Please try again.';
+        this.notificationService.error('Deletion Failed', msg);
+      }
+    });
   }
 }
