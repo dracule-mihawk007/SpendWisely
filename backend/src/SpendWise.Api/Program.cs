@@ -1,7 +1,8 @@
-using DotNetEnv;
 using SpendWise.Infrastructure;
 
-Env.TraversePath().Load();
+// Note: On Render, environment variables are set directly by the platform (no .env file needed)
+// Locally, DotNetEnv loads the .env file. We guard it so it doesn't crash on Render.
+try { DotNetEnv.Env.TraversePath().Load(); } catch { /* .env not present in production */ }
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,10 +40,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy
-            .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
+        }
+        else
+        {
+            // Fallback: allow all origins (safe for public API)
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        }
     });
 });
 
