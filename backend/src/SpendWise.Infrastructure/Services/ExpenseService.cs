@@ -26,12 +26,16 @@ public class ExpenseService : IExpenseService
             .AsQueryable();
 
         if (filter.FromDate.HasValue)
-            query = query.Where(e => e.ExpenseDate >= filter.FromDate.Value);
+        {
+            var fromUtc = DateTime.SpecifyKind(filter.FromDate.Value, DateTimeKind.Utc);
+            query = query.Where(e => e.ExpenseDate >= fromUtc);
+        }
 
         if (filter.ToDate.HasValue)
         {
             var endOfDay = filter.ToDate.Value.Date.AddDays(1).AddTicks(-1);
-            query = query.Where(e => e.ExpenseDate <= endOfDay);
+            var toUtc = DateTime.SpecifyKind(endOfDay, DateTimeKind.Utc);
+            query = query.Where(e => e.ExpenseDate <= toUtc);
         }
 
         if (filter.CategoryId.HasValue)

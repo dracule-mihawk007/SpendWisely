@@ -24,13 +24,13 @@ export class ExpenseListComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
 
   readonly searchQuery = signal<string>('');
-  filterCategoryId: number | null = null;
-  filterFromDate: string | null = null;
-  filterToDate: string | null = null;
+  readonly filterCategoryId = signal<number | null>(null);
+  readonly filterFromDate = signal<string>('');
+  readonly filterToDate = signal<string>('');
 
   readonly sortField = signal<SortField>('date');
   readonly sortDirection = signal<SortDirection>('desc');
-  currentSortOption = 'date-desc';
+  readonly currentSortOption = signal<string>('date-desc');
 
   readonly isExporting = signal<boolean>(false);
   readonly expandedExpenseIds = signal<Set<number>>(new Set());
@@ -52,22 +52,69 @@ export class ExpenseListComponent implements OnInit {
   filteredExpenses = computed(() => {
     let list = this.expenseService.expenses();
     const query = this.searchQuery().toLowerCase().trim();
+    const catId = this.filterCategoryId();
+    const from = this.filterFromDate();
+    const to = this.filterToDate();
     const field = this.sortField();
     const dir = this.sortDirection();
 
+    // Text search filter
     if (query) {
       list = list.filter(e =>
-        e.merchantName.toLowerCase().includes(query) ||
-        e.categoryName.toLowerCase().includes(query) ||
-        (e.items && e.items.some(i => i.description.toLowerCase().includes(query)))
+        (e.merchantName && e.merchantName.toLowerCase().includes(query)) ||
+        (e.categoryName && e.categoryName.toLowerCase().includes(query)) ||
+        (e.items && e.items.some(i => i.description && i.description.toLowerCase().includes(query)))
       );
     }
 
+    // Category filter
+    if (catId !== null && catId !== undefined) {
+      const numCatId = Number(catId);
+      if (!isNaN(numCatId)) {
+        list = list.filter(e => e.categoryId === numCatId);
+      }
+    }
+
+    // From Date filter (from beginning of selected day)
+    if (from) {
+      const fromParts = from.split('-').map(Number);
+      if (fromParts.length === 3) {
+        const fromMidnight = new Date(fromParts[0], fromParts[1] - 1, fromParts[2], 0, 0, 0, 0).getTime();
+        list = list.filter(e => {
+          const expTime = new Date(e.expenseDate).getTime();
+          return !isNaN(expTime) && expTime >= fromMidnight;
+        });
+      }
+    }
+
+    // To Date filter (to end of selected day)
+    if (to) {
+      const toParts = to.split('-').map(Number);
+      if (toParts.length === 3) {
+        const toEndOfDay = new Date(toParts[0], toParts[1] - 1, toParts[2], 23, 59, 59, 999).getTime();
+        list = list.filter(e => {
+          const expTime = new Date(e.expenseDate).getTime();
+          return !isNaN(expTime) && expTime <= toEndOfDay;
+        });
+      }
+    }
+
+    // Sorting
     return [...list].sort((a, b) => {
       let comparison = 0;
-      if (field === 'date') comparison = new Date(a.expenseDate).getTime() - new Date(b.expenseDate).getTime();
-      else if (field === 'amount') comparison = a.totalAmount - b.totalAmount;
-      else if (field === 'merchant') comparison = a.merchantName.localeCompare(b.merchantName);
+      if (field === 'date') {
+        const timeA = a.expenseDate ? new Date(a.expenseDate).getTime() : 0;
+        const timeB = b.expenseDate ? new Date(b.expenseDate).getTime() : 0;
+        comparison = (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
+      } else if (field === 'amount') {
+        const amtA = Number(a.totalAmount) || 0;
+        const amtB = Number(b.totalAmount) || 0;
+        comparison = amtA - amtB;
+      } else if (field === 'merchant') {
+        const nameA = a.merchantName || '';
+        const nameB = b.merchantName || '';
+        comparison = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      }
       return dir === 'asc' ? comparison : -comparison;
     });
   });
@@ -77,7 +124,7 @@ export class ExpenseListComponent implements OnInit {
   });
 
   hasActiveFilters(): boolean {
-    return !!(this.searchQuery() || this.filterCategoryId !== null || this.filterFromDate || this.filterToDate);
+    return !!(this.searchQuery() || this.filterCategoryId() !== null || this.filterFromDate() || this.filterToDate());
   }
 
   getCategoryIcon(icon: string | null | undefined): string { return formatCategoryIcon(icon); }
@@ -87,27 +134,52 @@ export class ExpenseListComponent implements OnInit {
     return formatCategoryIcon(cat?.icon);
   }
 
-  applyFilters(): void {
-    this.expenseService.loadExpenses({
-      categoryId: this.filterCategoryId,
-      fromDate: this.filterFromDate ? new Date(this.filterFromDate + 'T00:00:00Z').toISOString() : null,
-      toDate: this.filterToDate ? new Date(this.filterToDate + 'T23:59:59Z').toISOString() : null
-    }).subscribe();
+  showDatePicker(input: HTMLInputElement): void {
+    try {
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+      } else {
+        input.focus();
+      }
+    } catch {
+      input.focus();
+    }
+  }
+
+  clearFromDate(): void {
+    this.filterFromDate.set('');
+  }
+
+  clearToDate(): void {
+    this.filterToDate.set('');
+  }
+
+  onCategoryChange(val: any): void {
+    const num = val === null || val === 'null' || val === '' ? null : Number(val);
+    this.filterCategoryId.set(isNaN(num as number) ? null : num);
+  }
+
+  onFromDateChange(val: string): void {
+    this.filterFromDate.set(val || '');
+  }
+
+  onToDateChange(val: string): void {
+    this.filterToDate.set(val || '');
   }
 
   resetFilters(): void {
     this.searchQuery.set('');
-    this.filterCategoryId = null;
-    this.filterFromDate = null;
-    this.filterToDate = null;
-    this.currentSortOption = 'date-desc';
+    this.filterCategoryId.set(null);
+    this.filterFromDate.set('');
+    this.filterToDate.set('');
+    this.currentSortOption.set('date-desc');
     this.sortField.set('date');
     this.sortDirection.set('desc');
-    this.expenseService.loadExpenses({}).subscribe();
   }
 
-  onSortOptionChange(): void {
-    const [field, dir] = this.currentSortOption.split('-');
+  onSortOptionChange(val: string): void {
+    this.currentSortOption.set(val);
+    const [field, dir] = val.split('-');
     this.sortField.set(field as SortField);
     this.sortDirection.set(dir as SortDirection);
   }
@@ -119,7 +191,7 @@ export class ExpenseListComponent implements OnInit {
       this.sortField.set(field);
       this.sortDirection.set(field === 'date' || field === 'amount' ? 'desc' : 'asc');
     }
-    this.currentSortOption = `${this.sortField()}-${this.sortDirection()}`;
+    this.currentSortOption.set(`${this.sortField()}-${this.sortDirection()}`);
   }
 
   toggleExpand(id: number): void {

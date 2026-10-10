@@ -65,11 +65,12 @@
       <button class="btn btn-primary" (click)="openCreateModal()">Create Category</button>
     </div>
   }
+</div>
 
-  <!-- Modal -->
-  @if (isModalOpen()) {
-    <div class="modal-backdrop animate-fade-in" (click)="closeModal()">
-      <div class="modal-dialog glass-card" (click)="$event.stopPropagation()">
+<!-- Modal -->
+@if (isModalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-dialog glass-card" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <h3>{{ editingCategory() ? 'Edit Category' : 'Create Category' }}</h3>
           <button class="modal-close" (click)="closeModal()" aria-label="Close dialog">
@@ -133,4 +134,3 @@
       </div>
     </div>
   }
-</div>
