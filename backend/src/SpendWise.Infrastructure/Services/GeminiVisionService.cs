@@ -38,7 +38,7 @@ public class GeminiVisionService : IGeminiVisionService
     {
         _http = http;
         _apiKey = config["Gemini:ApiKey"]!;
-        _model = config["Gemini:Model"] ?? "gemini-1.5-flash";
+        _model = config["Gemini:Model"] ?? "gemini-flash-lite-latest";
     }
 
     public async Task<ReceiptScanResultDto> ScanReceiptAsync(byte[] imageBytes, string mimeType)
@@ -60,10 +60,17 @@ public class GeminiVisionService : IGeminiVisionService
             }
         };
 
-        var candidateModels = new[] { _model, "gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash" }
-            .Where(m => !string.IsNullOrWhiteSpace(m))
-            .Distinct()
-            .ToArray();
+        var candidateModels = new[]
+        {
+            _model,
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-flash-latest"
+        }
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .Distinct()
+        .ToArray();
 
         HttpResponseMessage response = null!;
         string lastError = string.Empty;
@@ -71,32 +78,39 @@ public class GeminiVisionService : IGeminiVisionService
         foreach (var modelName in candidateModels)
         {
             var url = $"v1beta/models/{modelName}:generateContent?key={_apiKey}";
-            for (int attempt = 1; attempt <= 3; attempt++)
+            try
             {
                 response = await _http.PostAsJsonAsync(url, payload);
-                if (response.IsSuccessStatusCode) break;
+                if (response.IsSuccessStatusCode)
+                {
+                    break;
+                }
 
                 var status = (int)response.StatusCode;
                 lastError = await response.Content.ReadAsStringAsync();
 
-                if ((status == 503 || status == 429) && attempt < 3)
+                // On 429 rate limit, short delay and retry once
+                if (status == 429)
                 {
-                    await Task.Delay(TimeSpan.FromMilliseconds(1500 * attempt));
-                    continue;
+                    await Task.Delay(1000);
+                    response = await _http.PostAsJsonAsync(url, payload);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        break;
+                    }
                 }
 
-                break;
+                // If 503 (overloaded) or other error, fast-failover immediately to next candidate model
             }
-
-            if (response != null && response.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                break;
+                lastError = ex.Message;
             }
         }
 
         if (response == null || !response.IsSuccessStatusCode)
         {
-            throw new HttpRequestException($"Gemini API error: {lastError}");
+            throw new HttpRequestException($"Gemini API error across candidate models: {lastError}");
         }
 
         var json = await response.Content.ReadAsStringAsync();
@@ -122,13 +136,22 @@ public class GeminiVisionService : IGeminiVisionService
         }
 
         text = text.Trim();
-        if (text.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
-            text = text[7..];
-        else if (text.StartsWith("```"))
-            text = text[3..];
-        if (text.EndsWith("```"))
-            text = text[..^3];
-        text = text.Trim();
+        var firstBrace = text.IndexOf('{');
+        var lastBrace = text.LastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace)
+        {
+            text = text.Substring(firstBrace, lastBrace - firstBrace + 1);
+        }
+        else
+        {
+            if (text.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+                text = text[7..];
+            else if (text.StartsWith("```"))
+                text = text[3..];
+            if (text.EndsWith("```"))
+                text = text[..^3];
+            text = text.Trim();
+        }
 
         var raw = JsonSerializer.Deserialize<GeminiReceiptResponse>(text, new JsonSerializerOptions
         {

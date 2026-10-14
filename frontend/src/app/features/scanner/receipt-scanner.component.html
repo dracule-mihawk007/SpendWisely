@@ -138,6 +138,20 @@
             <span class="badge badge-primary">Review & Confirm</span>
           </div>
 
+          @if (preview.aiScanSuccessful === false) {
+            <div class="budget-alert-box alert-warning" style="margin-top: 1rem; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+              <div class="alert-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div class="alert-body">
+                <strong style="color: #f59e0b;">Extraction Notice</strong>
+                <p>{{ preview.aiNotice || 'Receipt image uploaded. Please verify and enter the total amount and merchant details.' }}</p>
+              </div>
+            </div>
+          }
+
           <div class="grid-cols-2" style="margin-top: 1.25rem;">
             <div class="form-group">
               <label class="form-label">Merchant Name</label>

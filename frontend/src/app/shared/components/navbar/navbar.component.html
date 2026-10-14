@@ -52,12 +52,12 @@
         }
       </button>
 
-      <a routerLink="/scan" class="btn btn-primary btn-sm">
+      <button type="button" (click)="onScanClick()" class="btn btn-primary btn-sm">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>
         </svg>
         <span>Scan Receipt</span>
-      </a>
+      </button>
 
       <!-- User Profile, Delete Account & Logout -->
       @if (authService.currentUser(); as user) {
@@ -112,9 +112,9 @@
       <a routerLink="/dashboard" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Dashboard</a>
       <a routerLink="/expenses" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Expenses</a>
       <a routerLink="/categories" (click)="closeMobileMenu()" routerLinkActive="active" class="mobile-link">Categories</a>
-      <a routerLink="/scan" (click)="closeMobileMenu()" class="btn btn-primary btn-sm" style="margin-top: 0.5rem; justify-content: center;">
+      <button type="button" (click)="onScanClick()" class="btn btn-primary btn-sm" style="margin-top: 0.5rem; justify-content: center;">
         Scan Receipt
-      </a>
+      </button>
       <button (click)="onLogout(); closeMobileMenu()" class="btn btn-secondary btn-sm" style="margin-top: 0.25rem; justify-content: center;">
         Sign Out
       </button>

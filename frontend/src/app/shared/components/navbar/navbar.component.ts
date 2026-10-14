@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { ThemeService } from '../../../core/services/theme.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -16,10 +16,20 @@ export class NavbarComponent {
   readonly themeService = inject(ThemeService);
   readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
+  private readonly router = inject(Router);
 
   readonly mobileMenuOpen = signal<boolean>(false);
   readonly showDeleteConfirm = signal<boolean>(false);
   readonly isDeleting = signal<boolean>(false);
+
+  onScanClick(): void {
+    this.closeMobileMenu();
+    if (this.router.url.startsWith('/scan')) {
+      this.router.navigate(['/scan'], { queryParams: { r: Date.now() } });
+    } else {
+      this.router.navigate(['/scan']);
+    }
+  }
 
   toggleMobileMenu(): void {
     this.mobileMenuOpen.update(v => !v);

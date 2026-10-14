@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ExpenseService } from '../../core/services/expense.service';
 import { CategoryService } from '../../core/services/category.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -23,6 +23,7 @@ export class ReceiptScannerComponent implements OnInit {
   readonly categoryService = inject(CategoryService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   readonly activeMode = signal<'scan' | 'manual'>('scan');
   readonly isDragging = signal<boolean>(false);
@@ -44,6 +45,14 @@ export class ReceiptScannerComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Listen to query params so clicking "Scan Receipt" in navbar always resets to fresh dropzone
+    this.route.queryParams.subscribe(() => {
+      if (this.scanPreview()) {
+        this.resetScanner();
+      }
+      this.activeMode.set('scan');
+    });
+
     if (this.categoryService.categories().length === 0) {
       this.categoryService.loadCategories().subscribe({
         next: (cats) => {
@@ -58,6 +67,9 @@ export class ReceiptScannerComponent implements OnInit {
   }
 
   setMode(mode: 'scan' | 'manual'): void {
+    if (mode === 'scan' && this.scanPreview()) {
+      this.resetScanner();
+    }
     this.activeMode.set(mode);
     if (mode === 'manual' && !this.formMerchant) {
       this.formDate = new Date().toISOString().substring(0, 10);
@@ -97,7 +109,9 @@ export class ReceiptScannerComponent implements OnInit {
   onFileSelected(e: Event): void {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.processFile(input.files[0]);
+      const file = input.files[0];
+      input.value = '';
+      this.processFile(file);
     }
   }
 
@@ -191,6 +205,10 @@ export class ReceiptScannerComponent implements OnInit {
     this.formTax = 0;
     this.formTotal = 0;
     this.items.set([]);
+    const cats = this.categoryService.categories();
+    if (cats.length > 0) {
+      this.formCategoryId = cats[0].id;
+    }
   }
 
   resetScanner(): void {
