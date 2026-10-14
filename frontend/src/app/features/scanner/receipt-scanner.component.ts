@@ -34,14 +34,50 @@ export class ReceiptScannerComponent implements OnInit {
 
   formMerchant = '';
   formDate = new Date().toISOString().substring(0, 10);
-  formCategoryId = 1;
   formTax = 0;
-  formTotal = 0;
   items = signal<ScannedItemDto[]>([]);
 
-  selectedCategory = computed(() => {
-    const catId = Number(this.formCategoryId);
+  private readonly _formCategoryId = signal<number>(1);
+  get formCategoryId(): number {
+    return this._formCategoryId();
+  }
+  set formCategoryId(val: number) {
+    this._formCategoryId.set(Number(val));
+  }
+
+  private readonly _formTotal = signal<number>(0);
+  get formTotal(): number {
+    return this._formTotal();
+  }
+  set formTotal(val: number) {
+    this._formTotal.set(Number(val) || 0);
+  }
+
+  readonly selectedCategory = computed(() => {
+    const catId = this._formCategoryId();
     return this.categoryService.categories().find(c => c.id === catId) || null;
+  });
+
+  readonly currentCategorySpent = computed(() => {
+    const catId = this._formCategoryId();
+    const expenses = this.expenseService.expenses();
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return expenses
+      .filter(e => {
+        const d = new Date(e.expenseDate);
+        return e.categoryId === catId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      })
+      .reduce((sum, e) => sum + e.totalAmount, 0);
+  });
+
+  readonly isBudgetExceeded = computed(() => {
+    const cat = this.selectedCategory();
+    if (!cat || cat.monthlyBudgetLimit <= 0) return false;
+    const projected = this.currentCategorySpent() + this._formTotal();
+    return projected > cat.monthlyBudgetLimit;
   });
 
   ngOnInit(): void {
@@ -52,6 +88,10 @@ export class ReceiptScannerComponent implements OnInit {
       }
       this.activeMode.set('scan');
     });
+
+    if (this.expenseService.expenses().length === 0) {
+      this.expenseService.loadExpenses().subscribe();
+    }
 
     if (this.categoryService.categories().length === 0) {
       this.categoryService.loadCategories().subscribe({

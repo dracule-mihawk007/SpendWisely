@@ -105,15 +105,20 @@
             </div>
           }
 
-          <!-- Budget Warning Alert Box -->
-          @if (preview.budgetWarning) {
+          <!-- Dynamic Budget Warning Alert Box -->
+          @if (isBudgetExceeded()) {
             <div class="budget-alert-box alert-danger">
               <div class="alert-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <div class="alert-body">
                 <strong>Budget Exceeded</strong>
-                <p>Total monthly spending will reach {{ (preview.monthlySpent + preview.total) | number:'1.2-2' }}, exceeding the {{ preview.monthlyBudgetLimit | number:'1.2-2' }} limit for {{ preview.suggestedCategoryName }}.</p>
+                <p>
+                  Current spent: {{ currentCategorySpent() | number:'1.2-2' }}. 
+                  Adding this expense ({{ formTotal | number:'1.2-2' }}) will reach 
+                  <strong>{{ (currentCategorySpent() + formTotal) | number:'1.2-2' }}</strong>, 
+                  exceeding the {{ selectedCategory()?.monthlyBudgetLimit | number:'1.2-2' }} limit for {{ selectedCategory()?.name }}.
+                </p>
               </div>
             </div>
           } @else {
@@ -123,7 +128,11 @@
               </div>
               <div class="alert-body">
                 <strong>Within Budget</strong>
-                <p>Current spent: {{ preview.monthlySpent | number:'1.2-2' }} / Limit: {{ preview.monthlyBudgetLimit | number:'1.2-2' }}</p>
+                <p>
+                  Current spent: {{ currentCategorySpent() | number:'1.2-2' }}
+                  <span style="opacity: 0.85;">(+{{ formTotal | number:'1.2-2' }} after saving)</span> 
+                  / Limit: {{ selectedCategory()?.monthlyBudgetLimit | number:'1.2-2' }}
+                </p>
               </div>
             </div>
           }
@@ -288,8 +297,12 @@
                 <span>Monthly Limit:</span>
                 <strong>{{ cat.monthlyBudgetLimit | number:'1.2-2' }}</strong>
               </div>
+              <div class="budget-row" style="margin-top: 0.35rem; display: flex; justify-content: space-between; font-size: 0.825rem; color: var(--text-secondary);">
+                <span>Current Spent:</span>
+                <span>{{ currentCategorySpent() | number:'1.2-2' }}</span>
+              </div>
               <div class="budget-tip">
-                <span>Logging {{ formTotal | number:'1.2-2' }} under {{ cat.name }}</span>
+                <span>Logging {{ formTotal | number:'1.2-2' }} under {{ cat.name }} (Projected: {{ (currentCategorySpent() + formTotal) | number:'1.2-2' }})</span>
               </div>
             </div>
           }
