@@ -69,23 +69,44 @@ builder.Services.AddCors(options =>
         {
             // In development, allow any localhost port
             policy.SetIsOriginAllowed(origin =>
-                    new Uri(origin).Host == "localhost" || new Uri(origin).Host == "127.0.0.1")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+                try
+                {
+                    var host = new Uri(origin).Host;
+                    return host == "localhost" || host == "127.0.0.1";
+                }
+                catch { return false; }
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         }
         else
         {
-            // In production, only allow explicitly configured origins
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            // In production, allow configured origins and SpendWisely Vercel deployments
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+                try
+                {
+                    if (allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase)) return true;
+                    var uri = new Uri(origin);
+                    return uri.Host.EndsWith("vercel.app", StringComparison.OrdinalIgnoreCase) &&
+                           uri.Host.Contains("spend-wisely", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         }
     });
 });
 
 var app = builder.Build();
+
+app.UseCors("AllowFrontend");
 
 // Security headers for all responses
 app.Use(async (context, next) =>
@@ -108,7 +129,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
 app.UseRateLimiter();
 
