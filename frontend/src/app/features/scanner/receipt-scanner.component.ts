@@ -9,10 +9,12 @@ import { ScanPreviewDto, ScannedItemDto } from '../../core/models/receipt.model'
 import { CreateExpenseDto } from '../../core/models/expense.model';
 import { formatCategoryIcon } from '../../core/utils/icon.utils';
 
+import { CategoryIconComponent } from '../../shared/components/category-icon/category-icon.component';
+
 @Component({
   selector: 'app-receipt-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CategoryIconComponent],
   templateUrl: './receipt-scanner.component.html',
   styleUrls: ['./receipt-scanner.component.css']
 })

@@ -1,38 +1,33 @@
+/**
+ * Normalizes raw category icon keys to standard semantic keys.
+ * Pure semantic identifier mapping - zero emoji icons.
+ */
 export function formatCategoryIcon(icon: string | null | undefined): string {
-  if (!icon) return '📁';
+  if (!icon) return 'category';
 
-  const trimmed = icon.trim();
+  const trimmed = icon.trim().toLowerCase();
   const iconMap: Record<string, string> = {
-    'restaurant': '🍽️',
-    'dining': '🍽️',
-    'food': '🍔',
-    'shopping_cart': '🛒',
-    'groceries': '🛒',
-    'shopping': '🛍️',
-    'flight': '✈️',
-    'travel': '✈️',
-    'airplane': '✈️',
-    'bolt': '⚡',
-    'utilities': '⚡',
-    'energy': '💡',
-    'devices': '💻',
-    'electronics': '💻',
-    'tech': '📱',
-    'home': '🏠',
-    'car': '🚗',
-    'health': '🏥',
-    'movie': '🎬',
-    'coffee': '☕'
+    'restaurant': 'restaurant',
+    'dining': 'restaurant',
+    'food': 'restaurant',
+    'shopping_cart': 'shopping_cart',
+    'groceries': 'shopping_cart',
+    'shopping': 'shopping_cart',
+    'flight': 'flight',
+    'travel': 'flight',
+    'airplane': 'flight',
+    'bolt': 'bolt',
+    'utilities': 'bolt',
+    'energy': 'bolt',
+    'devices': 'devices',
+    'electronics': 'devices',
+    'tech': 'devices',
+    'home': 'home',
+    'car': 'car',
+    'health': 'health',
+    'movie': 'movie',
+    'coffee': 'coffee'
   };
 
-  const key = trimmed.toLowerCase();
-  if (iconMap[key]) {
-    return iconMap[key];
-  }
-
-  if (trimmed.length <= 4) {
-    return trimmed;
-  }
-
-  return '📁';
+  return iconMap[trimmed] || 'category';
 }

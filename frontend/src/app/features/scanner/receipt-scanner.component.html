@@ -64,7 +64,10 @@
       <div class="dropzone-footer-hint" (click)="$event.stopPropagation()">
         <span>Forgot or lost your receipt?</span>
         <button type="button" class="link-btn" (click)="setMode('manual')">
-          Enter details manually instead →
+          <span>Enter details manually instead</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; vertical-align: middle;">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -152,7 +155,7 @@
               <label class="form-label">Category</label>
               <select class="form-select" [(ngModel)]="formCategoryId">
                 @for (cat of categoryService.categories(); track cat.id) {
-                  <option [value]="cat.id">{{ getCategoryIcon(cat.icon) }} {{ cat.name }} (Limit: {{ cat.monthlyBudgetLimit }})</option>
+                  <option [value]="cat.id">{{ cat.name }} (Limit: {{ cat.monthlyBudgetLimit }})</option>
                 }
               </select>
             </div>
@@ -263,7 +266,8 @@
             <div class="category-budget-card">
               <div class="budget-card-title">
                 <span class="cat-chip" [style.background-color]="cat.colorHex + '20'" [style.color]="cat.colorHex">
-                  {{ getCategoryIcon(cat.icon) }} {{ cat.name }}
+                  <app-category-icon [icon]="cat.icon" [size]="14"></app-category-icon>
+                  <span>{{ cat.name }}</span>
                 </span>
               </div>
               <div class="budget-row">
@@ -314,7 +318,7 @@
               <label class="form-label">Category *</label>
               <select class="form-select" [(ngModel)]="formCategoryId">
                 @for (cat of categoryService.categories(); track cat.id) {
-                  <option [value]="cat.id">{{ getCategoryIcon(cat.icon) }} {{ cat.name }} (Limit: {{ cat.monthlyBudgetLimit }})</option>
+                  <option [value]="cat.id">{{ cat.name }} (Limit: {{ cat.monthlyBudgetLimit }})</option>
                 }
               </select>
             </div>

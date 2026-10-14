@@ -102,22 +102,22 @@
   margin-left: 0.25rem;
 }
 
-.user-pill {
+.user-badge {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.65rem 0.25rem 0.35rem;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 9999px;
+  border-radius: var(--radius-md);
   font-size: 0.825rem;
 }
 
 .user-avatar {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary) 0%, #845EF7 100%);
+  border-radius: var(--radius-sm);
+  background: var(--primary);
   color: #ffffff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -155,7 +155,7 @@
   border-color: rgba(239, 68, 68, 0.3);
 }
 
-/* Delete Account button — sits beside logout */
+/* Delete Account button - sits beside logout */
 .delete-account-btn {
   width: 34px;
   height: 34px;

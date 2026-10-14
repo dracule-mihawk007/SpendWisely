@@ -1,4 +1,4 @@
-# SpendWisely — AI-Powered Expense & Budget Tracker
+# SpendWisely - Smart Expense & Budget Management
 
 SpendWisely is a modern full-stack personal finance application that streamlines expense tracking using Gemini AI vision models for automated receipt scanning, category budget monitoring, and real-time threshold alerts.
 

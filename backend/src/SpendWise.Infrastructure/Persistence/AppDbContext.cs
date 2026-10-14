@@ -64,7 +64,7 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // No more HasData seeding — categories are now per-user
+        // No more HasData seeding - categories are now per-user
         // Default categories are created for each new user via AuthService.RegisterAsync
     }
 }

@@ -8,13 +8,15 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ExpenseDto, CreateExpenseDto, CreateExpenseItemDto } from '../../core/models/expense.model';
 import { formatCategoryIcon } from '../../core/utils/icon.utils';
 
+import { CategoryIconComponent } from '../../shared/components/category-icon/category-icon.component';
+
 export type SortField = 'date' | 'amount' | 'merchant';
 export type SortDirection = 'asc' | 'desc';
 
 @Component({
   selector: 'app-expense-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CategoryIconComponent],
   templateUrl: './expense-list.component.html',
   styleUrls: ['./expense-list.component.css']
 })

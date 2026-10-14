@@ -1,7 +1,4 @@
 <div class="auth-page-wrapper">
-  <div class="auth-ambient-glow glow-1"></div>
-  <div class="auth-ambient-glow glow-2"></div>
-
   <div class="auth-card glass-card animate-fade-in">
     <!-- Brand Header -->
     <div class="auth-header">
@@ -57,7 +54,7 @@
               </svg>
               <span>Password Acceptance Criteria</span>
               @if (areAllCriteriaMet()) {
-                <span class="criteria-badge-ok">All Met ✓</span>
+                <span class="criteria-badge-ok">All Met</span>
               }
             </div>
             <ul class="criteria-list">
@@ -230,7 +227,7 @@
               </svg>
               <span>Password Acceptance Criteria</span>
               @if (areAllCriteriaMet()) {
-                <span class="criteria-badge-ok">All Met ✓</span>
+                <span class="criteria-badge-ok">All Met</span>
               }
             </div>
             <ul class="criteria-list">
@@ -470,5 +467,11 @@
         </button>
       </form>
     }
+
+    <div class="auth-legal-footer">
+      <a routerLink="/privacy-policy">Privacy Policy</a>
+      <span class="legal-sep">·</span>
+      <a routerLink="/terms">Terms &amp; Conditions</a>
+    </div>
   </div>
 </div>

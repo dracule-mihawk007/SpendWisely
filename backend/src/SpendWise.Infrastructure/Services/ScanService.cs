@@ -58,12 +58,12 @@ public class ScanService : IScanService
         var categories = await _context.Categories.Where(c => c.UserId == userId).ToListAsync();
         if (categories.Count == 0)
         {
-            var defaultCat = new SpendWise.Domain.Entities.Category
+        var defaultCat = new SpendWise.Domain.Entities.Category
             {
                 Name = "General",
                 MonthlyBudgetLimit = 500,
                 ColorHex = "#4f46e5",
-                Icon = "📁",
+                Icon = "category",
                 UserId = userId
             };
             _context.Categories.Add(defaultCat);

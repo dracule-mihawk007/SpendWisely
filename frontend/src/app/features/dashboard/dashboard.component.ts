@@ -18,12 +18,14 @@ import { CategoryService } from '../../core/services/category.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { formatCategoryIcon } from '../../core/utils/icon.utils';
 
+import { CategoryIconComponent } from '../../shared/components/category-icon/category-icon.component';
+
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CategoryIconComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

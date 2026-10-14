@@ -40,7 +40,7 @@
         <select class="form-select" [ngModel]="filterCategoryId()" (ngModelChange)="onCategoryChange($event)">
           <option [ngValue]="null">All Categories</option>
           @for (cat of categoryService.categories(); track cat.id) {
-            <option [ngValue]="cat.id">{{ getCategoryIcon(cat.icon) }} {{ cat.name }}</option>
+            <option [ngValue]="cat.id">{{ cat.name }}</option>
           }
         </select>
       </div>
@@ -193,8 +193,9 @@
                 </td>
 
                 <td>
-                  <span class="cat-pill" [style.background-color]="getCategoryColor(expense.categoryId) + '15'" [style.color]="getCategoryColor(expense.categoryId)">
-                    {{ getCategoryIconById(expense.categoryId) }} {{ expense.categoryName }}
+                  <span class="cat-badge" [style.background-color]="getCategoryColor(expense.categoryId) + '15'" [style.color]="getCategoryColor(expense.categoryId)">
+                    <app-category-icon [icon]="getCategoryIconById(expense.categoryId)" [size]="14"></app-category-icon>
+                    <span>{{ expense.categoryName }}</span>
                   </span>
                 </td>
 
@@ -209,7 +210,7 @@
                       <span>Receipt</span>
                     </button>
                   } @else {
-                    <span class="no-receipt">—</span>
+                    <span class="no-receipt">-</span>
                   }
                 </td>
 
@@ -304,7 +305,7 @@
             <label class="form-label">Category</label>
             <select class="form-select" [(ngModel)]="newCategoryId">
               @for (cat of categoryService.categories(); track cat.id) {
-                <option [value]="cat.id">{{ getCategoryIcon(cat.icon) }} {{ cat.name }}</option>
+                <option [value]="cat.id">{{ cat.name }}</option>
               }
             </select>
           </div>

@@ -117,7 +117,7 @@
 .item-calc { color: var(--text-muted); font-size: 0.75rem; }
 .item-sum { font-weight: 600; color: var(--text-primary); }
 
-.cat-pill {
+.cat-badge {
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.2rem 0.6rem; border-radius: var(--radius-sm);
   font-size: 0.8rem; font-weight: 600;

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SpendWise.Application.DTOs;
 using SpendWise.Application.Interfaces;
 using System.Security.Claims;
@@ -18,8 +19,12 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto dto)
     {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            return BadRequest(new { message = "Email and password are required." });
+
         try
         {
             var result = await _authService.RegisterAsync(dto);
@@ -32,16 +37,21 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto dto)
     {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            return BadRequest(new { message = "Email and password are required." });
+
         try
         {
             var result = await _authService.LoginAsync(dto);
             return Ok(result);
         }
-        catch (UnauthorizedAccessException ex)
+        catch (UnauthorizedAccessException)
         {
-            return Unauthorized(new { message = ex.Message });
+            // Generic message to prevent user enumeration
+            return Unauthorized(new { message = "Invalid email or password." });
         }
     }
 

@@ -6,11 +6,12 @@ import { ExpenseService } from '../../core/services/expense.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from '../../core/models/category.model';
 import { formatCategoryIcon } from '../../core/utils/icon.utils';
+import { CategoryIconComponent } from '../../shared/components/category-icon/category-icon.component';
 
 @Component({
   selector: 'app-category-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CategoryIconComponent],
   templateUrl: './category-list.component.html',
   styleUrls: ['./category-list.component.css']
 })
@@ -24,11 +25,11 @@ export class CategoryListComponent implements OnInit {
 
   modalName = '';
   modalLimit = 500;
-  modalIcon = '🛒';
+  modalIcon = 'shopping_cart';
   modalColor = '#4f46e5';
 
-  readonly iconPresets = ['🛒', '🍽️', '✈️', '⚡', '💻', '🚗', '🏠', '🎬', '🏥', '☕'];
-  readonly colorPresets = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6'];
+  readonly iconPresets = ['shopping_cart', 'restaurant', 'flight', 'bolt', 'devices', 'car', 'home', 'movie', 'health', 'coffee'];
+  readonly colorPresets = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#0284c7', '#0d9488'];
 
   ngOnInit(): void {
     this.categoryService.loadCategories().subscribe();
@@ -63,7 +64,7 @@ export class CategoryListComponent implements OnInit {
     this.editingCategory.set(null);
     this.modalName = '';
     this.modalLimit = 500;
-    this.modalIcon = '🛒';
+    this.modalIcon = 'shopping_cart';
     this.modalColor = '#4f46e5';
     this.isModalOpen.set(true);
   }

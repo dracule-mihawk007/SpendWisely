@@ -3,7 +3,7 @@
     <div>
       <div class="greeting-row">
         <h1>Dashboard</h1>
-        <span class="month-pill">
+        <span class="month-badge">
           {{ currentMonthName() }} {{ currentYear() }}
         </span>
       </div>
@@ -169,8 +169,8 @@
           <div class="category-bar-item">
             <div class="category-bar-header">
               <div class="cat-title-group">
-                <span class="cat-icon-badge" [style.background-color]="cat.colorHex + '20'">
-                  {{ getCategoryIcon(cat.icon) }}
+                <span class="cat-icon-badge" [style.background-color]="cat.colorHex + '20'" [style.color]="cat.colorHex">
+                  <app-category-icon [icon]="cat.icon" [size]="14"></app-category-icon>
                 </span>
                 <span class="cat-name">{{ cat.name }}</span>
               </div>
@@ -251,8 +251,8 @@
         @for (expense of recentExpenses(); track expense.id) {
           <div class="recent-row">
             <div class="recent-left">
-              <span class="recent-icon-badge" [style.background-color]="getCategoryColor(expense.categoryId) + '20'">
-                {{ getCategoryIconById(expense.categoryId) }}
+              <span class="recent-icon-badge" [style.background-color]="getCategoryColor(expense.categoryId) + '20'" [style.color]="getCategoryColor(expense.categoryId)">
+                <app-category-icon [icon]="getCategoryIconById(expense.categoryId)" [size]="14"></app-category-icon>
               </span>
               <div>
                 <div class="recent-merchant">{{ expense.merchantName }}</div>

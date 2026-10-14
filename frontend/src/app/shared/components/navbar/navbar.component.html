@@ -62,7 +62,7 @@
       <!-- User Profile, Delete Account & Logout -->
       @if (authService.currentUser(); as user) {
         <div class="user-menu">
-          <div class="user-pill" [title]="user.email">
+          <div class="user-badge" [title]="user.email">
             <span class="user-avatar">{{ getInitials(user.name) }}</span>
             <span class="user-name">{{ user.name }}</span>
           </div>

@@ -15,7 +15,7 @@
       <div class="glass-card category-card">
         <div class="category-header">
           <div class="cat-icon-avatar" [style.background-color]="cat.colorHex + '20'" [style.color]="cat.colorHex">
-            <span>{{ getCategoryIcon(cat.icon) }}</span>
+            <app-category-icon [icon]="cat.icon" [size]="20"></app-category-icon>
           </div>
           <div class="cat-info">
             <h3>{{ cat.name }}</h3>
@@ -101,8 +101,9 @@
                   type="button" 
                   class="icon-preset-btn" 
                   [class.active]="modalIcon === icon"
+                  [title]="icon"
                   (click)="modalIcon = icon">
-                  {{ icon }}
+                  <app-category-icon [icon]="icon" [size]="18"></app-category-icon>
                 </button>
               }
             </div>
